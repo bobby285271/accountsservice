@@ -22,7 +22,9 @@
 
 #include <sys/types.h>
 #include <pwd.h>
+#ifdef HAVE_SHADOW_H
 #include <shadow.h>
+#endif
 
 #include <glib.h>
 #include <gio/gio.h>
