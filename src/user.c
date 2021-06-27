@@ -59,8 +59,8 @@ struct User {
         GKeyFile     *keyfile;
 
         gid_t         gid;
-        gint64        expiration_time;
-        gint64        last_change_time;
+        GDateTime    *user_expiration_time;
+        GDateTime    *last_change_time;
         gint64        min_days_between_changes;
         gint64        max_days_between_changes;
         gint64        days_to_warn;
@@ -403,6 +403,7 @@ user_update_from_pwent (User          *user,
         g_autofree gchar *real_name = NULL;
         gboolean is_system_account;
         const gchar *passwd;
+        g_autoptr(GDateTime) start_time = NULL;
         gboolean locked;
         PasswordMode mode;
         AccountType account_type;
@@ -483,8 +484,11 @@ user_update_from_pwent (User          *user,
                         mode = PASSWORD_MODE_SET_AT_LOGIN;
                 }
 
-                user->expiration_time = spent->sp_expire;
-                user->last_change_time  = spent->sp_lstchg;
+                start_time = g_date_time_new_from_unix_utc (0);
+
+                user->user_expiration_time = g_date_time_add_days (start_time, spent->sp_expire);
+                user->last_change_time = g_date_time_add_days (start_time, spent->sp_lstchg);
+
                 user->min_days_between_changes = spent->sp_min;
                 user->max_days_between_changes = spent->sp_max;
                 user->days_to_warn  = spent->sp_warn;
@@ -1499,15 +1503,20 @@ user_get_password_expiration_policy_authorized_cb (Daemon                *daemon
                                                    gpointer               data)
 
 {
+        guint64 user_expiration_time;
+        guint64 last_change_time;
+
         if (!user->account_expiration_policy_known) {
                 throw_error (context, ERROR_NOT_SUPPORTED, "account expiration policy unknown to accounts service");
                 return;
         }
 
+        user_expiration_time = g_date_time_to_unix (user->user_expiration_time);
+        last_change_time = g_date_time_to_unix (user->last_change_time);
         accounts_user_complete_get_password_expiration_policy (ACCOUNTS_USER (user),
                                                                context,
-                                                               user->expiration_time,
-                                                               user->last_change_time,
+                                                               user_expiration_time,
+                                                               last_change_time,
                                                                user->min_days_between_changes,
                                                                user->max_days_between_changes,
                                                                user->days_to_warn,
@@ -2368,6 +2377,8 @@ user_finalize (GObject *object)
         g_free (user->gecos);
 
         g_clear_pointer (&user->login_history, g_variant_unref);
+        g_clear_pointer (&user->user_expiration_time, g_date_time_unref);
+        g_clear_pointer (&user->last_change_time, g_date_time_unref);
 
         if (G_OBJECT_CLASS (user_parent_class)->finalize)
                 (*G_OBJECT_CLASS (user_parent_class)->finalize) (object);
