@@ -27,6 +27,7 @@ deps = [
 cflags = [
   '-DLOCALSTATEDIR="@0@"'.format(act_localstatedir),
   '-DDATADIR="@0@"'.format(act_datadir),
+  '-DSYSCONFDIR="@0@"'.format(act_sysconfdir),
   '-DICONDIR="@0@"'.format(join_paths(act_localstatedir, 'lib', 'AccountsService', 'icons')),
   '-DUSERDIR="@0@"'.format(join_paths(act_localstatedir, 'lib', 'AccountsService', 'users')),
 ]

@@ -52,3 +52,13 @@ if install_systemd_unit_dir
     install_dir: systemd_system_unit_dir,
   )
 endif
+
+install_data(
+  'administrator',
+  install_dir: join_paths(act_datadir, 'accountsservice', 'user-templates'),
+)
+
+install_data(
+  'standard',
+  install_dir: join_paths(act_datadir, 'accountsservice', 'user-templates'),
+)

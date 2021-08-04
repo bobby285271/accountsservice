@@ -326,15 +326,9 @@ entry_generator_cachedir (Daemon       *daemon,
         /* Update all the users from the files in the cache dir */
         g_hash_table_iter_init (&iter, users);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
-                const gchar *name = key;
                 User *user = value;
-                g_autofree gchar *filename = NULL;
-                g_autoptr(GKeyFile) key_file = NULL;
 
-                filename = g_build_filename (USERDIR, name, NULL);
-                key_file = g_key_file_new ();
-                if (g_key_file_load_from_file (key_file, filename, 0, NULL))
-                        user_update_from_keyfile (user, key_file);
+                user_update_from_cache (user);
         }
 
         *state = NULL;

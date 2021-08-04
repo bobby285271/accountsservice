@@ -71,6 +71,7 @@ struct User {
         gchar        *gecos;
         gboolean      account_expiration_policy_known;
         gboolean      cached;
+        gboolean      template_loaded;
 
         guint        *extension_ids;
         guint         n_extension_ids;
@@ -84,6 +85,7 @@ typedef struct UserClass
 } UserClass;
 
 static void user_accounts_user_iface_init (AccountsUserIface *iface);
+static void user_update_from_keyfile (User *user, GKeyFile *keyfile);
 
 G_DEFINE_TYPE_WITH_CODE (User, user, ACCOUNTS_TYPE_USER_SKELETON, G_IMPLEMENT_INTERFACE (ACCOUNTS_TYPE_USER, user_accounts_user_iface_init));
 
@@ -136,6 +138,261 @@ user_reset_icon_file (User *user)
         if (icon_is_default) {
                 accounts_user_set_icon_file (ACCOUNTS_USER (user), user->default_icon_file);
         }
+}
+
+static gboolean
+user_has_cache_file (User *user)
+{
+        g_autofree char *filename = NULL;
+
+        filename = g_build_filename (USERDIR, user_get_user_name (user), NULL);
+
+        return g_file_test (filename, G_FILE_TEST_EXISTS);
+}
+
+static gboolean
+is_valid_shell_identifier_character (char     c,
+                                     gboolean first)
+{
+        return (!first && g_ascii_isdigit (c)) ||
+                c == '_' ||
+                g_ascii_isalpha (c);
+}
+
+static char *
+expand_template_variables (User       *user,
+                           GHashTable *template_variables,
+                           const char *str)
+{
+        GString *s = g_string_new ("");
+        const char *p, *start;
+        char c;
+
+        p = str;
+        while (*p) {
+                c = *p;
+                if (c == '\\') {
+                        p++;
+                        c = *p;
+                        if (c != '\0') {
+                                p++;
+                                switch (c) {
+                                case '\\':
+                                        g_string_append_c (s, '\\');
+                                        break;
+                                case '$':
+                                        g_string_append_c (s, '$');
+                                        break;
+                                default:
+                                        g_string_append_c (s, '\\');
+                                        g_string_append_c (s, c);
+                                        break;
+                                }
+                        }
+                } else if (c == '$') {
+                        gboolean brackets = FALSE;
+                        p++;
+                        if (*p == '{') {
+                                brackets = TRUE;
+                                p++;
+                        }
+                        start = p;
+                        while (*p != '\0' &&
+                               is_valid_shell_identifier_character (*p, p == start))
+                                p++;
+                        if (p == start || (brackets && *p != '}')) {
+                                g_string_append_c (s, '$');
+                                if (brackets)
+                                        g_string_append_c (s, '{');
+                                g_string_append_len (s, start, p - start);
+                        } else {
+                                g_autofree char *variable = NULL;
+                                const char *value;
+
+                                if (brackets && *p == '}')
+                                        p++;
+
+                                variable = g_strndup (start, p - start - 1);
+
+                                value = g_hash_table_lookup (template_variables, variable);
+                                if (value) {
+                                        g_string_append (s, value);
+                                }
+                        }
+                } else {
+                        p++;
+                        g_string_append_c (s, c);
+                }
+        }
+        return g_string_free (s, FALSE);
+}
+
+static void
+load_template_environment_file (User       *user,
+                                GHashTable *variables,
+                                const char *file)
+{
+        g_autofree char *contents = NULL;
+        g_auto (GStrv) lines = NULL;
+        g_autoptr (GError) error = NULL;
+        gboolean file_loaded;
+        size_t i;
+
+        file_loaded = g_file_get_contents (file, &contents, NULL, &error);
+
+        if (!file_loaded) {
+                g_debug ("Couldn't load template environment file %s: %s",
+                         file, error->message);
+                return;
+        }
+
+        lines = g_strsplit (contents, "\n", -1);
+
+        for (i = 0; lines[i] != NULL; i++) {
+                char *p;
+                char *variable_end;
+                const char *variable;
+                const char *value;
+
+                p = lines[i];
+                while (g_ascii_isspace (*p))
+                        p++;
+                if (*p == '#' || *p == '\0')
+                        continue;
+                variable = p;
+                while (is_valid_shell_identifier_character (*p, p == variable))
+                        p++;
+                variable_end = p;
+                while (g_ascii_isspace (*p))
+                        p++;
+                if (variable_end == variable || *p != '=') {
+                        g_debug ("template environment file %s has invalid line '%s'\n", file, lines[i]);
+                        continue;
+                }
+                *variable_end = '\0';
+                p++;
+                while (g_ascii_isspace (*p))
+                        p++;
+                value = p;
+
+                if (g_hash_table_lookup (variables, variable) == NULL) {
+                        g_hash_table_insert (variables,
+                                             g_strdup (variable),
+                                             g_strdup (value));
+                }
+
+        }
+}
+
+static void
+initialize_template_environment (User               *user,
+                                 GHashTable         *variables,
+                                 const char * const *files)
+{
+        size_t i;
+
+        g_hash_table_insert (variables, g_strdup ("HOME"), g_strdup (accounts_user_get_home_directory (ACCOUNTS_USER (user))));
+        g_hash_table_insert (variables, g_strdup ("USER"), g_strdup (user_get_user_name (user)));
+
+        if (files == NULL)
+                return;
+
+        for (i = 0; files[i] != NULL; i++) {
+                load_template_environment_file (user, variables, files[i]);
+        }
+}
+
+static void
+user_update_from_template (User *user)
+{
+        g_autofree char *filename = NULL;
+        g_autoptr (GKeyFile) key_file = NULL;
+        g_autoptr (GError) error = NULL;
+        g_autoptr (GHashTable) template_variables = NULL;
+        g_auto (GStrv) template_environment_files = NULL;
+        gboolean key_file_loaded = FALSE;
+        const char * const *system_dirs[] = {
+                (const char *[]) { "/run", SYSCONFDIR, NULL },
+                g_get_system_data_dirs (),
+                NULL
+        };
+        g_autoptr (GPtrArray) dirs = NULL;
+        AccountType account_type;
+        const char *account_type_string;
+        size_t i, j;
+        g_autofree char *contents = NULL;
+        g_autofree char *expanded = NULL;
+        g_auto (GStrv) lines = NULL;
+
+        if (user->template_loaded)
+                return;
+
+        filename = g_build_filename (USERDIR,
+                                     accounts_user_get_user_name (ACCOUNTS_USER (user)),
+                                     NULL);
+
+        account_type = accounts_user_get_account_type (ACCOUNTS_USER (user));
+        if (account_type == ACCOUNT_TYPE_ADMINISTRATOR)
+                account_type_string = "administrator";
+        else
+                account_type_string = "standard";
+
+        dirs = g_ptr_array_new ();
+        for (i = 0; system_dirs[i] != NULL; i++) {
+                for (j = 0; system_dirs[i][j] != NULL; j++) {
+                        char *dir;
+
+                        dir = g_build_filename (system_dirs[i][j],
+                                                "accountsservice",
+                                                "user-templates",
+                                                NULL);
+                        g_ptr_array_add (dirs, dir);
+                }
+        }
+        g_ptr_array_add (dirs, NULL);
+
+        key_file = g_key_file_new ();
+        key_file_loaded = g_key_file_load_from_dirs (key_file,
+                                                     account_type_string,
+                                                     (const char **) dirs->pdata,
+                                                     NULL,
+                                                     G_KEY_FILE_KEEP_COMMENTS,
+                                                     &error);
+
+        if (!key_file_loaded) {
+                g_debug ("failed to load user template: %s", error->message);
+                return;
+        }
+
+        template_variables = g_hash_table_new_full (g_str_hash,
+                                                    g_str_equal,
+                                                    g_free,
+                                                    g_free);
+
+        template_environment_files = g_key_file_get_string_list (key_file,
+                                                                 "Template",
+                                                                 "EnvironmentFiles",
+                                                                 NULL,
+                                                                 NULL);
+
+        initialize_template_environment (user, template_variables, (const char * const *) template_environment_files);
+
+        g_key_file_remove_group (key_file, "Template", NULL);
+        contents = g_key_file_to_data (key_file, NULL, NULL);
+        lines = g_strsplit (contents, "\n", -1);
+
+        expanded = expand_template_variables (user, template_variables, contents);
+
+        key_file_loaded = g_key_file_load_from_data (key_file,
+                                                     expanded,
+                                                     strlen (expanded),
+                                                     G_KEY_FILE_KEEP_COMMENTS,
+                                                     &error);
+
+        if (key_file_loaded)
+                user_update_from_keyfile (user, key_file);
+
+        user->template_loaded = key_file_loaded;
 }
 
 void
@@ -242,16 +499,16 @@ user_update_from_pwent (User          *user,
                                                      passwd);
         accounts_user_set_system_account (ACCOUNTS_USER (user), is_system_account);
 
+        if (!user_has_cache_file (user))
+                user_update_from_template (user);
         g_object_thaw_notify (G_OBJECT (user));
 }
 
-void
+static void
 user_update_from_keyfile (User     *user,
                           GKeyFile *keyfile)
 {
         gchar *s;
-
-        g_object_freeze_notify (G_OBJECT (user));
 
         s = g_key_file_get_string (keyfile, "User", "Language", NULL);
         if (s != NULL) {
@@ -313,9 +570,25 @@ user_update_from_keyfile (User     *user,
 
         g_clear_pointer (&user->keyfile, g_key_file_unref);
         user->keyfile = g_key_file_ref (keyfile);
+}
+
+void
+user_update_from_cache (User *user)
+{
+        g_autofree gchar *filename = NULL;
+        g_autoptr(GKeyFile) key_file = NULL;
+
+        filename = g_build_filename (USERDIR, accounts_user_get_user_name (ACCOUNTS_USER (user)), NULL);
+
+        key_file = g_key_file_new ();
+
+        if (!g_key_file_load_from_file (key_file, filename, 0, NULL))
+                return;
+
+        g_object_freeze_notify (G_OBJECT (user));
+        user_update_from_keyfile (user, key_file);
         user_set_cached (user, TRUE);
         user_set_saved (user, TRUE);
-
         g_object_thaw_notify (G_OBJECT (user));
 }
 
@@ -538,6 +811,9 @@ user_extension_authentication_done (Daemon                *daemon,
 {
         GDBusInterfaceInfo *interface = user_data;
         const gchar *method_name;
+
+        if (!user_has_cache_file (user))
+                user_update_from_template (user);
 
         method_name = g_dbus_method_invocation_get_method_name (invocation);
 
