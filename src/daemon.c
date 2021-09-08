@@ -247,6 +247,14 @@ entry_generator_fgetpwent (Daemon       *daemon,
                         if (shadow_entry_buffers != NULL) {
                             *spent = &shadow_entry_buffers->spbuf;
                         }
+
+                        /* Skip system users... */
+                        if (!user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell, (*spent)? (*spent)->sp_pwdp : NULL)) {
+                                g_debug ("skipping user: %s", pwent->pw_name);
+
+                                return entry_generator_fgetpwent (daemon, users, state, spent);
+                        }
+
                         return pwent;
                 }
         }
@@ -401,12 +409,6 @@ load_entries (Daemon             *daemon,
                 if (pwent == NULL)
                         break;
 
-                /* Skip system users... */
-                if (!explicitly_requested && !user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell, spent? spent->sp_pwdp : NULL)) {
-                        g_debug ("skipping user: %s", pwent->pw_name);
-                        continue;
-                }
-
                 /* Only process users that haven't been processed yet.
                  * We do always make sure entries get promoted
                  * to "cached" status if they are supposed to be
@@ -477,11 +479,11 @@ reload_users (Daemon *daemon)
         while (g_hash_table_iter_next (&iter, &name, NULL))
                 g_hash_table_add (local, name);
 
-        /* and add users to hash table that were explicitly requested  */
-        load_entries (daemon, users, TRUE, entry_generator_requested_users);
-
         /* Now add/update users from other sources, possibly non-local */
         load_entries (daemon, users, TRUE, entry_generator_cachedir);
+
+        /* and add users to hash table that were explicitly requested  */
+        load_entries (daemon, users, TRUE, entry_generator_requested_users);
 
         wtmp_helper_update_login_frequencies (users);
 
@@ -990,7 +992,6 @@ finish_list_cached_users (ListUserData *data)
         GHashTableIter iter;
         gpointer key, value;
         uid_t uid;
-        const gchar *shell;
 
         object_paths = g_ptr_array_new ();
 
@@ -1000,9 +1001,8 @@ finish_list_cached_users (ListUserData *data)
                 User *user = value;
 
                 uid = user_get_uid (user);
-                shell = user_get_shell (user);
 
-                if (!user_classify_is_human (uid, name, shell, NULL)) {
+                if (user_get_system_account (user)) {
                         g_debug ("user %s %ld excluded", name, (long) uid);
                         continue;
                 }
