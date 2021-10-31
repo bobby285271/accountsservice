@@ -1560,6 +1560,175 @@ user_get_password_expiration_policy (AccountsUser          *auser,
         return TRUE;
 }
 
+typedef struct PasswordExpirationPolicy
+{
+        char        *min_days_between_changes;
+        char        *max_days_between_changes;
+        char        *days_to_warn;
+        char        *days_after_expiration_until_lock;
+
+} PasswordExpirationPolicy;
+
+static void
+free_password_expiration (PasswordExpirationPolicy *pwd_expiration)
+{
+        g_free (pwd_expiration->min_days_between_changes);
+        g_free (pwd_expiration->max_days_between_changes);
+        g_free (pwd_expiration->days_to_warn);
+        g_free (pwd_expiration->days_after_expiration_until_lock);
+        g_free (pwd_expiration);
+}
+
+static void
+user_set_password_expiration_policy_authorized_cb (Daemon                *daemon,
+                                                   User                  *user,
+                                                   GDBusMethodInvocation *context,
+                                                   gpointer               data)
+
+{
+        PasswordExpirationPolicy *pwd_expiration = data;
+        g_autoptr(GError) error = NULL;
+        const gchar *argv[11];
+
+        sys_log (context,
+                 "set password expiration policy of user '%s' (%d)",
+                 accounts_user_get_user_name (ACCOUNTS_USER (user)),
+                 accounts_user_get_uid (ACCOUNTS_USER (user)));
+
+        g_object_freeze_notify (G_OBJECT (user));
+        argv[0] = "/usr/bin/chage";
+        argv[1] = "-m";
+        argv[2] = pwd_expiration->min_days_between_changes;
+        argv[3] = "-M";
+        argv[4] = pwd_expiration->max_days_between_changes;
+        argv[5] = "-W";
+        argv[6] = pwd_expiration->days_to_warn;
+        argv[7] = "-I";
+        argv[8] = pwd_expiration->days_after_expiration_until_lock;
+        argv[9] = accounts_user_get_user_name (ACCOUNTS_USER (user));
+        argv[10] = NULL;
+
+        if (!spawn_with_login_uid (context, argv, &error)) {
+                throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
+                return;
+        }
+
+        g_object_thaw_notify (G_OBJECT (user));
+
+        accounts_user_complete_set_password_expiration_policy (ACCOUNTS_USER (user), context);
+}
+
+static gboolean
+user_set_password_expiration_policy (AccountsUser          *auser,
+                                     GDBusMethodInvocation *context,
+                                     gint64                 min_days_between_changes,
+                                     gint64                 max_days_between_changes,
+                                     gint64                 days_to_warn,
+                                     gint64                 days_after_expiration_until_lock)
+{
+        User *user = (User*)auser;
+        int uid;
+        const gchar *action_id;
+        PasswordExpirationPolicy *pwd_expiration = NULL;
+
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return TRUE;
+        }
+
+        if (accounts_user_get_uid (ACCOUNTS_USER (user)) == (uid_t) uid)
+                action_id = "org.freedesktop.accounts.change-own-user-data";
+        else
+                action_id = "org.freedesktop.accounts.user-administration";
+
+        pwd_expiration = g_new (PasswordExpirationPolicy, 1);
+        pwd_expiration->min_days_between_changes = g_strdup_printf ("%ld", min_days_between_changes);
+        pwd_expiration->max_days_between_changes = g_strdup_printf ("%ld", max_days_between_changes);
+        pwd_expiration->days_to_warn = g_strdup_printf ("%ld", days_to_warn);
+        pwd_expiration->days_after_expiration_until_lock = g_strdup_printf ("%ld", days_after_expiration_until_lock);
+
+        daemon_local_check_auth (user->daemon,
+                                 user,
+                                 action_id,
+                                 user_set_password_expiration_policy_authorized_cb,
+                                 context,
+                                 pwd_expiration,
+                                 (GDestroyNotify)free_password_expiration);
+
+        return TRUE;
+}
+
+static void
+user_set_user_expiration_policy_authorized_cb (Daemon                *daemon,
+                                               User                  *user,
+                                               GDBusMethodInvocation *context,
+                                               gpointer               data)
+
+{
+        g_autofree gchar *expiration_time = NULL;
+        g_autoptr (GError) error = NULL;
+        g_autoptr (GDateTime) time = NULL;
+        const gchar *argv[5];
+
+        sys_log (context,
+                 "set user expiration policy of user '%s' (%d)",
+                 accounts_user_get_user_name (ACCOUNTS_USER (user)),
+                 accounts_user_get_uid (ACCOUNTS_USER (user)));
+
+        g_object_freeze_notify (G_OBJECT (user));
+
+        if ((gint64)data != -1) {
+                time = g_date_time_new_from_unix_local ((gint64)data);
+                expiration_time = g_date_time_format (time, "%F");
+        }
+        else {
+                expiration_time = g_strdup ("-1");
+        }
+        argv[0] = "/usr/bin/chage";
+        argv[1] = "-E";
+        argv[2] = expiration_time;
+        argv[3] = accounts_user_get_user_name (ACCOUNTS_USER (user));
+        argv[4] = NULL;
+
+        if (!spawn_with_login_uid (context, argv, &error)) {
+                throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
+                return;
+        }
+
+        g_object_thaw_notify (G_OBJECT (user));
+
+        accounts_user_complete_set_user_expiration_policy (ACCOUNTS_USER (user), context);
+}
+
+static gboolean
+user_set_user_expiration_policy (AccountsUser          *auser,
+                                 GDBusMethodInvocation *context,
+                                 gint64                 user_expiration_time)
+{
+        User *user = (User*)auser;
+        int uid;
+        const gchar *action_id;
+
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return TRUE;
+        }
+
+        if (accounts_user_get_uid (ACCOUNTS_USER (user)) == (uid_t) uid)
+                action_id = "org.freedesktop.accounts.change-own-user-data";
+        else
+                action_id = "org.freedesktop.accounts.user-administration";
+
+        daemon_local_check_auth (user->daemon,
+                                 user,
+                                 action_id,
+                                 user_set_user_expiration_policy_authorized_cb,
+                                 context,
+                                 (gpointer)user_expiration_time,
+                                 NULL);
+
+        return TRUE;
+}
 
 static void
 user_change_location_authorized_cb (Daemon                *daemon,
@@ -2423,6 +2592,8 @@ user_accounts_user_iface_init (AccountsUserIface *iface)
         iface->handle_set_session = user_set_session;
         iface->handle_set_session_type = user_set_session_type;
         iface->handle_get_password_expiration_policy = user_get_password_expiration_policy;
+        iface->handle_set_password_expiration_policy = user_set_password_expiration_policy;
+        iface->handle_set_user_expiration_policy = user_set_user_expiration_policy;
 }
 
 static void

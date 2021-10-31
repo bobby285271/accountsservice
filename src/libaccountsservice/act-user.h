@@ -89,6 +89,15 @@ void           act_user_get_password_expiration_policy (ActUser   *user,
                                                         gint64    *days_to_warn,
                                                         gint64    *days_after_expiration_until_lock);
 
+void           act_user_set_password_expiration_policy (ActUser   *user,
+                                                        gint64     min_days_between_changes,
+                                                        gint64     max_days_between_changes,
+                                                        gint64     days_to_warn,
+                                                        gint64     days_after_expiration_until_lock);
+
+void           act_user_set_user_expiration_policy     (ActUser   *user,
+                                                        gint64     expiration_time);
+
 void           act_user_set_email                 (ActUser    *user,
                                                    const char *email);
 void           act_user_set_language              (ActUser    *user,
