@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <grp.h>
 #include <sys/wait.h>
 #include <pwd.h>
 #ifdef HAVE_SHADOW_H
@@ -1106,11 +1107,24 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
         argv[2] = "-c";
         argv[3] = cd->real_name;
         if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
-                if (EXTRA_ADMIN_GROUPS != NULL && EXTRA_ADMIN_GROUPS[0] != '\0')
-                        admin_groups = g_strconcat (ADMIN_GROUP, ",",
-                                                    EXTRA_ADMIN_GROUPS, NULL);
-                else
-                        admin_groups = g_strdup (ADMIN_GROUP);
+                g_auto(GStrv) admin_groups_array = NULL;
+                g_autoptr(GStrvBuilder) admin_groups_builder = g_strv_builder_new ();
+
+                g_strv_builder_add (admin_groups_builder, ADMIN_GROUP);
+
+                if (EXTRA_ADMIN_GROUPS != NULL && EXTRA_ADMIN_GROUPS[0] != '\0') {
+                        g_auto(GStrv) extra_admin_groups = NULL;
+                        extra_admin_groups = g_strsplit (EXTRA_ADMIN_GROUPS, ",", 0);
+
+                        for (gsize i = 0; extra_admin_groups[i] != NULL; i++) {
+                                if (getgrnam (extra_admin_groups[i]) != NULL)
+                                        g_strv_builder_add (admin_groups_builder, extra_admin_groups[i]);
+                                else
+                                        g_warning ("Extra admin group %s doesn’t exist: not adding the user to it", extra_admin_groups[i]);
+                        }
+                }
+                admin_groups_array = g_strv_builder_end (admin_groups_builder);
+                admin_groups = g_strjoinv (",", admin_groups_array);
 
                 argv[4] = "-G";
                 argv[5] = admin_groups;
