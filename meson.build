@@ -1,6 +1,6 @@
 project(
   'accountsservice', 'c',
-  version: '0.6.55',
+  version: run_command(['./generate-version.sh']).stdout().strip(),
   license: 'GPL3+',
   default_options: 'buildtype=debugoptimized',
   meson_version: '>= 0.50.0',
