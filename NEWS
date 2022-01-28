@@ -1,7 +1,0 @@
-Please consult the git log for details on what are in this release.
-
-For instance,
-
-```
- ❯ git shortlog --no-merges $(git describe --abbrev=0)..
-```
