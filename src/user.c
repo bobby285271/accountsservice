@@ -485,8 +485,12 @@ user_update_from_pwent (User          *user,
                 }
 
                 start_time = g_date_time_new_from_unix_utc (0);
-
-                user->user_expiration_time = g_date_time_add_days (start_time, spent->sp_expire);
+                if (spent->sp_expire < 0) {
+                        user->user_expiration_time = NULL;
+                }
+                else {
+                        user->user_expiration_time = g_date_time_add_days (start_time, spent->sp_expire);
+                }
                 user->last_change_time = g_date_time_add_days (start_time, spent->sp_lstchg);
 
                 user->min_days_between_changes = spent->sp_min;
@@ -1503,15 +1507,19 @@ user_get_password_expiration_policy_authorized_cb (Daemon                *daemon
                                                    gpointer               data)
 
 {
-        guint64 user_expiration_time;
+        gint64  user_expiration_time;
         guint64 last_change_time;
 
         if (!user->account_expiration_policy_known) {
                 throw_error (context, ERROR_NOT_SUPPORTED, "account expiration policy unknown to accounts service");
                 return;
         }
-
-        user_expiration_time = g_date_time_to_unix (user->user_expiration_time);
+        if (user->user_expiration_time == NULL) {
+                user_expiration_time = -1;
+        }
+        else {
+                user_expiration_time = g_date_time_to_unix (user->user_expiration_time);
+        }
         last_change_time = g_date_time_to_unix (user->last_change_time);
         accounts_user_complete_get_password_expiration_policy (ACCOUNTS_USER (user),
                                                                context,
