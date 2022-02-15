@@ -7,5 +7,5 @@ if [ -n "$VERSION_FROM_DIR_NAME" ]; then
 fi
 
 COMMITS_SINCE_LAST_RELEASE=$(git rev-list $(git describe --abbrev=0)..HEAD --count)
-date +%y.%V.${COMMITS_SINCE_LAST_RELEASE}
+date +%y.%V.${COMMITS_SINCE_LAST_RELEASE} -d "@$(git log -1 --pretty=format:%ct)"
 
