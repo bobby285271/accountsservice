@@ -303,7 +303,7 @@ get_admin_groups (gid_t  *admin_gid_out,
                 struct group *extra_group;
                 extra_group = getgrnam (extra_admin_groups[i]);
                 if (extra_group == NULL)
-                        goto out;
+                        continue;
                 if (extra_group->gr_gid == admin_gid)
                         continue;
 
