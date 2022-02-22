@@ -25,7 +25,8 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 # Write access is needed to create home directories:
 ProtectHome=false
-PrivateTmp=true
+# Needed sometime for data shared like icons
+PrivateTmp=false
 PrivateNetwork=true
 # We need access to the canonical user database:
 PrivateUsers=false
