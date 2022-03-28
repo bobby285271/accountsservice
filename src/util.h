@@ -32,9 +32,8 @@ void sys_log (GDBusMethodInvocation *context,
 
 gboolean get_caller_uid (GDBusMethodInvocation *context, gint *uid);
 
-gboolean spawn_with_login_uid (GDBusMethodInvocation  *context,
-                               const gchar            *argv[],
-                               GError                **error);
+gboolean spawn_sync (const gchar  *argv[],
+                     GError      **error);
 
 gboolean get_admin_groups (gid_t  *admin_gid_out,
                            gid_t **groups_out,

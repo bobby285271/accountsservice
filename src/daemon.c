@@ -1164,7 +1164,7 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
                 return;
         }
 
-        if (!spawn_with_login_uid (context, argv, &error)) {
+        if (!spawn_sync (argv, &error)) {
                 throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                 return;
         }
@@ -1372,7 +1372,7 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
                 argv[4] = NULL;
         }
 
-        if (!spawn_with_login_uid (context, argv, &error)) {
+        if (!spawn_sync (argv, &error)) {
                 throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                 return;
         }

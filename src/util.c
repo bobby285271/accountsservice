@@ -155,32 +155,6 @@ sys_log (GDBusMethodInvocation *context,
         syslog (LOG_NOTICE, "%s", msg);
 }
 
-static void
-get_caller_loginuid (GDBusMethodInvocation *context, gchar *loginuid, gint size)
-{
-        GPid pid;
-        g_autofree gchar *path = NULL;
-        g_autofree gchar *buf = NULL;
-
-        if (get_caller_pid (context, &pid)) {
-                path = g_strdup_printf ("/proc/%d/loginuid", (int) pid);
-        } else {
-                path = NULL;
-        }
-
-        if (path != NULL && g_file_get_contents (path, &buf, NULL, NULL)) {
-                strncpy (loginuid, buf, size);
-        }
-        else {
-                gint uid;
-
-                if (!get_caller_uid (context, &uid)) {
-                        uid = getuid ();
-                }
-                g_snprintf (loginuid, size, "%d", uid);
-        }
-}
-
 static gboolean
 compat_check_exit_status (int      estatus,
                           GError **error)
@@ -207,29 +181,14 @@ compat_check_exit_status (int      estatus,
 #endif
 }
 
-static void
-setup_loginuid (gpointer data)
-{
-        const char *id = data;
-        int fd;
-
-        fd = open ("/proc/self/loginuid", O_WRONLY);
-        write (fd, id, strlen (id));
-        close (fd);
-}
-
 gboolean
-spawn_with_login_uid (GDBusMethodInvocation  *context,
-                      const gchar            *argv[],
-                      GError                **error)
+spawn_sync (const gchar  *argv[],
+            GError      **error)
 {
         gboolean ret = FALSE;
-        gchar loginuid[20];
         gint status;
 
-        get_caller_loginuid (context, loginuid, G_N_ELEMENTS (loginuid));
-
-        if (!g_spawn_sync (NULL, (gchar**)argv, NULL, 0, setup_loginuid, loginuid, NULL, NULL, &status, error))
+        if (!g_spawn_sync (NULL, (gchar**) argv, NULL, 0, NULL, NULL, NULL, NULL, &status, error))
                 goto out;
         if (!compat_check_exit_status (status, error))
                 goto out;

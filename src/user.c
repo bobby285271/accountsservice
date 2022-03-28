@@ -1152,7 +1152,7 @@ user_change_real_name_authorized_cb (Daemon                *daemon,
                 argv[4] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                 argv[5] = NULL;
 
-                if (!spawn_with_login_uid (context, argv, &error)) {
+                if (!spawn_sync (argv, &error)) {
                         throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                         return;
                 }
@@ -1225,7 +1225,7 @@ user_change_user_name_authorized_cb (Daemon                *daemon,
                 argv[4] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                 argv[5] = NULL;
 
-                if (!spawn_with_login_uid (context, argv, &error)) {
+                if (!spawn_sync (argv, &error)) {
                         throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                         return;
                 }
@@ -1608,7 +1608,7 @@ user_set_password_expiration_policy_authorized_cb (Daemon                *daemon
         argv[9] = accounts_user_get_user_name (ACCOUNTS_USER (user));
         argv[10] = NULL;
 
-        if (!spawn_with_login_uid (context, argv, &error)) {
+        if (!spawn_sync (argv, &error)) {
                 throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                 return;
         }
@@ -1690,7 +1690,7 @@ user_set_user_expiration_policy_authorized_cb (Daemon                *daemon,
         argv[3] = accounts_user_get_user_name (ACCOUNTS_USER (user));
         argv[4] = NULL;
 
-        if (!spawn_with_login_uid (context, argv, &error)) {
+        if (!spawn_sync (argv, &error)) {
                 throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                 return;
         }
@@ -1804,7 +1804,7 @@ user_change_home_dir_authorized_cb (Daemon                *daemon,
                 argv[5] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                 argv[6] = NULL;
 
-                if (!spawn_with_login_uid (context, argv, &error)) {
+                if (!spawn_sync (argv, &error)) {
                         throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                         return;
                 }
@@ -1859,7 +1859,7 @@ user_change_shell_authorized_cb (Daemon                *daemon,
                 argv[4] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                 argv[5] = NULL;
 
-                if (!spawn_with_login_uid (context, argv, &error)) {
+                if (!spawn_sync (argv, &error)) {
                         throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                         return;
                 }
@@ -2079,7 +2079,7 @@ user_change_locked_authorized_cb (Daemon                *daemon,
                 argv[3] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                 argv[4] = NULL;
 
-                if (!spawn_with_login_uid (context, argv, &error)) {
+                if (!spawn_sync (argv, &error)) {
                         throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                         return;
                 }
@@ -2202,7 +2202,7 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
                 argv[4] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                 argv[5] = NULL;
 
-                if (!spawn_with_login_uid (context, argv, &error)) {
+                if (!spawn_sync (argv, &error)) {
                         throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                         return;
                 }
@@ -2268,7 +2268,7 @@ user_change_password_mode_authorized_cb (Daemon                *daemon,
                         argv[3] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                         argv[4] = NULL;
 
-                        if (!spawn_with_login_uid (context, argv, &error)) {
+                        if (!spawn_sync (argv, &error)) {
                                 throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                                 return;
                         }
@@ -2281,7 +2281,7 @@ user_change_password_mode_authorized_cb (Daemon                *daemon,
                                 argv[4] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                                 argv[5] = NULL;
 
-                                if (!spawn_with_login_uid (context, argv, &error)) {
+                                if (!spawn_sync (argv, &error)) {
                                         throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                                         return;
                                 }
@@ -2301,7 +2301,7 @@ user_change_password_mode_authorized_cb (Daemon                *daemon,
                         argv[3] = accounts_user_get_user_name (ACCOUNTS_USER (user));
                         argv[4] = NULL;
 
-                        if (!spawn_with_login_uid (context, argv, &error)) {
+                        if (!spawn_sync (argv, &error)) {
                                 throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                                 return;
                         }
@@ -2379,7 +2379,7 @@ user_change_password_authorized_cb (Daemon                *daemon,
         argv[4] = accounts_user_get_user_name (ACCOUNTS_USER (user));
         argv[5] = NULL;
 
-        if (!spawn_with_login_uid (context, argv, &error)) {
+        if (!spawn_sync (argv, &error)) {
                 throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                 return;
         }
