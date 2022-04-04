@@ -171,7 +171,7 @@ def CreateUser(self, name, fullname, account_type):
     self.users_auto_uids += 1
 
     return self.AddUser(self.users_auto_uids, name, DEFAULT_USER_PASSWORD, {
-        'RealName': fullname, 'AccountType': account_type})
+        'RealName': fullname, 'AccountType': account_type}, {})
 
 
 @dbus.service.method(MAIN_IFACE, in_signature='xb')
