@@ -615,6 +615,22 @@ reload_autologin_timeout (Daemon *daemon)
 }
 
 static void
+queue_reload_users_eventually (Daemon *daemon)
+{
+        DaemonPrivate *priv = daemon_get_instance_private (daemon);
+
+        if (priv->reload_id > 0) {
+                return;
+        }
+
+        /* we wait 10 seconds before reloading the users, so e.g. wtmp
+         * parsing doesn't hammer the cpu if the user is logging in
+         * and out in a continuous loop.
+         */
+        priv->reload_id = g_timeout_add_seconds (10, (GSourceFunc)reload_users_timeout, daemon);
+}
+
+static void
 queue_reload_users_soon (Daemon *daemon)
 {
         DaemonPrivate *priv = daemon_get_instance_private (daemon);
@@ -660,12 +676,18 @@ on_users_monitor_changed (GFileMonitor      *monitor,
                           GFileMonitorEvent  event_type,
                           Daemon            *daemon)
 {
+        DaemonPrivate *priv = daemon_get_instance_private (daemon);
+
         if (event_type != G_FILE_MONITOR_EVENT_CHANGED &&
             event_type != G_FILE_MONITOR_EVENT_CREATED) {
                 return;
         }
 
-        queue_reload_users_soon (daemon);
+        if (monitor == priv->wtmp_monitor) {
+                queue_reload_users_eventually (daemon);
+        } else {
+                queue_reload_users_soon (daemon);
+        }
 }
 
 static void
