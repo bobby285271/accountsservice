@@ -80,6 +80,7 @@ def AddUser(self, uid, username, password=DEFAULT_USER_PASSWORD,
         'IconFile': '',
         'InputSources': dbus.Array([], signature='a{ss}'),
         'Language': 'C',
+        'Languages': dbus.Array([], signature='s'),
         'LocalAccount': True,
         'Location': '',
         'Locked': False,
@@ -294,6 +295,11 @@ def SetEmail(self, email):
 @dbus.service.method(USER_IFACE, in_signature='s')
 def SetLanguage(self, language):
     set_user_property(self, 'Language', language)
+
+
+@dbus.service.method(USER_IFACE, in_signature='as')
+def SetLanguages(self, languages):
+    set_user_property(self, 'Languages', dbus.Array(languages, signature='s'))
 
 
 @dbus.service.method(USER_IFACE, in_signature='s')

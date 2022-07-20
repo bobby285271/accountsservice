@@ -318,6 +318,10 @@ class TestAccountsService(dbusmock.DBusTestCase):
         self.wait_changed(user)
         self.assertEqual(user.get_language(), 'fr_FR.UTF-8')
 
+        user.set_languages(['en_GB.UTF-8', 'fr_FR.UTF-8'])
+        self.wait_changed(user)
+        self.assertEqual(user.get_languages(), ['en_GB.UTF-8', 'fr_FR.UTF-8'])
+
         user.set_location('Test Location')
         self.wait_changed(user)
         self.assertEqual(user.get_location(), 'Test Location')
