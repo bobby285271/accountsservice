@@ -56,7 +56,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own name</doc:definition>
+            <doc:definition>To change their own name</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
@@ -96,7 +96,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own email address</doc:definition>
+            <doc:definition>To change their own email address</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
@@ -135,7 +135,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own language</doc:definition>
+            <doc:definition>To change their own language</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
@@ -178,7 +178,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own language</doc:definition>
+            <doc:definition>To change their own language</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
@@ -218,7 +218,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own language</doc:definition>
+            <doc:definition>To change their own language</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
@@ -258,7 +258,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own language</doc:definition>
+            <doc:definition>To change their own language</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
@@ -293,7 +293,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own location</doc:definition>
+            <doc:definition>To change their own location</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
@@ -399,7 +399,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own icon</doc:definition>
+            <doc:definition>To change their own icon</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
@@ -600,7 +600,7 @@
         <doc:list>
           <doc:item>
             <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
-            <doc:definition>To change his own language</doc:definition>
+            <doc:definition>To change their own language</doc:definition>
           </doc:item>
           <doc:item>
             <doc:term>org.freedesktop.accounts.user-administration</doc:term>
