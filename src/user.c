@@ -515,13 +515,22 @@ static void
 user_update_from_keyfile (User     *user,
                           GKeyFile *keyfile)
 {
-        gchar *s;
+        gchar *s, **sl;
 
         s = g_key_file_get_string (keyfile, "User", "Language", NULL);
-        if (s != NULL) {
+        sl = g_key_file_get_string_list (keyfile, "User", "Languages", NULL, NULL);
+        if (sl != NULL) {
+                accounts_user_set_languages (ACCOUNTS_USER (user), (const gchar *const *) sl);
+                accounts_user_set_language (ACCOUNTS_USER (user), sl[0]);
+                g_clear_pointer (&sl, g_strfreev);
+        } else if (s != NULL) {
+                const char *languages[] = { s, NULL };
                 if (!verify_locale (s)) {
                         g_warning ("Language '%s' set for user %s is invalid",
                                    s, accounts_user_get_user_name (ACCOUNTS_USER (user)));
+                } else {
+                        /* Don't migrate broken locales */
+                        accounts_user_set_languages (ACCOUNTS_USER (user), languages);
                 }
                 accounts_user_set_language (ACCOUNTS_USER (user), s);
                 g_clear_pointer (&s, g_free);
@@ -626,8 +635,16 @@ user_save_to_keyfile (User     *user,
         if (accounts_user_get_email (ACCOUNTS_USER (user)))
                 g_key_file_set_string (keyfile, "User", "Email", accounts_user_get_email (ACCOUNTS_USER (user)));
 
-        if (accounts_user_get_language (ACCOUNTS_USER (user)))
-                g_key_file_set_string (keyfile, "User", "Language", accounts_user_get_language (ACCOUNTS_USER (user)));
+        if (accounts_user_get_languages (ACCOUNTS_USER (user))) {
+                const gchar * const* languages;
+                languages = accounts_user_get_languages (ACCOUNTS_USER (user));
+                g_key_file_set_string_list (keyfile, "User", "Languages", languages, g_strv_length ((char **) languages));
+        } else if (accounts_user_get_language (ACCOUNTS_USER (user))) {
+                const gchar *languages[] = { NULL, NULL };
+
+                languages[0] = accounts_user_get_language (ACCOUNTS_USER (user));
+                g_key_file_set_string_list (keyfile, "User", "Languages", languages, g_strv_length ((char **) languages));
+        }
 
         if (accounts_user_get_session (ACCOUNTS_USER (user)))
                 g_key_file_set_string (keyfile, "User", "Session", accounts_user_get_session (ACCOUNTS_USER (user)));
@@ -1310,6 +1327,67 @@ user_set_email (AccountsUser          *auser,
 }
 
 static void
+user_change_languages_authorized_cb (Daemon                *daemon,
+                                     User                  *user,
+                                     GDBusMethodInvocation *context,
+                                     gpointer               data)
+
+{
+        const gchar * const* languages = data;
+        guint i;
+
+        for (i = 0; languages[i] != NULL; i++) {
+                if (!verify_locale (languages[i])) {
+                        g_dbus_method_invocation_return_error (context,
+                                                               G_DBUS_ERROR,
+                                                               G_DBUS_ERROR_INVALID_ARGS,
+                                                               "Locale '%s' is not a valid XPG-formatted locale",
+                                                               languages[i]);
+                        return;
+                }
+        }
+
+        if (!g_strv_equal (accounts_user_get_languages (ACCOUNTS_USER (user)), languages)) {
+                accounts_user_set_language (ACCOUNTS_USER (user), languages[0]);
+                accounts_user_set_languages (ACCOUNTS_USER (user), languages);
+
+                save_extra_data (user);
+        }
+
+        accounts_user_complete_set_languages (ACCOUNTS_USER (user), context);
+}
+
+static gboolean
+user_set_languages (AccountsUser          *auser,
+                    GDBusMethodInvocation *context,
+                    const gchar * const   *languages)
+{
+        User *user = (User*)auser;
+        int uid;
+        const gchar *action_id;
+
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return TRUE;
+        }
+
+        if (accounts_user_get_uid (ACCOUNTS_USER (user)) == (uid_t) uid)
+                action_id = "org.freedesktop.accounts.change-own-user-data";
+        else
+                action_id = "org.freedesktop.accounts.user-administration";
+
+        daemon_local_check_auth (user->daemon,
+                                 user,
+                                 action_id,
+                                 user_change_languages_authorized_cb,
+                                 context,
+                                 g_strdupv ((gchar **) languages),
+                                 (GDestroyNotify)g_strfreev);
+
+        return TRUE;
+}
+
+static void
 user_change_language_authorized_cb (Daemon                *daemon,
                                     User                  *user,
                                     GDBusMethodInvocation *context,
@@ -1328,7 +1406,10 @@ user_change_language_authorized_cb (Daemon                *daemon,
         }
 
         if (g_strcmp0 (accounts_user_get_language (ACCOUNTS_USER (user)), language) != 0) {
+                const gchar *languages[] = { language, NULL };
+
                 accounts_user_set_language (ACCOUNTS_USER (user), language);
+                accounts_user_set_languages (ACCOUNTS_USER (user), languages);
 
                 save_extra_data (user);
         }
@@ -2592,6 +2673,7 @@ user_accounts_user_iface_init (AccountsUserIface *iface)
         iface->handle_set_home_directory = user_set_home_directory;
         iface->handle_set_icon_file = user_set_icon_file;
         iface->handle_set_language = user_set_language;
+        iface->handle_set_languages = user_set_languages;
         iface->handle_set_location = user_set_location;
         iface->handle_set_locked = user_set_locked;
         iface->handle_set_password = user_set_password;

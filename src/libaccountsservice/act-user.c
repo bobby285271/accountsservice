@@ -1018,6 +1018,27 @@ act_user_get_icon_file (ActUser *user)
 }
 
 /**
+ * act_user_get_languages:
+ * @user: a #ActUser
+ *
+ * Returns the value of #ActUser:languages.
+ *
+ * Returns: (transfer none) (nullable): the user’s preferred languages, or the
+ *    empty string if they are using the system default language, or %NULL
+ *    if there is no connection to the daemon
+ */
+const char * const *
+act_user_get_languages (ActUser *user)
+{
+        g_return_val_if_fail (ACT_IS_USER (user), NULL);
+
+        if (user->accounts_proxy == NULL)
+                return NULL;
+
+        return (const char **) accounts_user_get_languages (user->accounts_proxy);
+}
+
+/**
  * act_user_get_language:
  * @user: a #ActUser
  *
@@ -1448,6 +1469,41 @@ act_user_set_language (ActUser    *user,
                                                    NULL,
                                                    &error)) {
                 g_warning ("SetLanguage for language %s failed: %s", language, error->message);
+                return;
+        }
+}
+
+/**
+ * act_user_set_languages:
+ * @user: the user object to alter.
+ * @languages: (array zero-terminated=1) (not nullable): an array of locale (for example, `en_US.utf8`), or
+ *    the empty string to use the system default locale
+ *
+ * Assigns preferred languages for @user, setting #ActUser:languages, and
+ * overriding #ActUser:language with the first item in the list if there is one.
+ *
+ * Note this function is synchronous and ignores errors.
+ **/
+void
+act_user_set_languages (ActUser            *user,
+                        const char * const *languages)
+{
+        g_autoptr(GError) error = NULL;
+
+        g_return_if_fail (ACT_IS_USER (user));
+        g_return_if_fail (languages != NULL);
+        g_return_if_fail (ACCOUNTS_IS_USER (user->accounts_proxy));
+
+        if (!accounts_user_call_set_languages_sync (user->accounts_proxy,
+                                                    languages,
+                                                    G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                    -1,
+                                                    NULL,
+                                                    &error)) {
+                g_autofree char *languages_s = NULL;
+
+                languages_s = g_strjoinv (":", (gchar **) languages);
+                g_warning ("SetLanguages for languages %s failed: %s", languages_s, error->message);
                 return;
         }
 }

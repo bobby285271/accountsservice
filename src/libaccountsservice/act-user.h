@@ -69,6 +69,7 @@ gboolean       act_user_is_local_account          (ActUser   *user);
 gboolean       act_user_is_nonexistent            (ActUser   *user);
 const char    *act_user_get_icon_file             (ActUser   *user);
 const char    *act_user_get_language              (ActUser   *user);
+const char * const *act_user_get_languages        (ActUser   *user);
 const char    *act_user_get_x_session             (ActUser   *user);
 const char    *act_user_get_session               (ActUser   *user);
 const char    *act_user_get_session_type          (ActUser   *user);
@@ -95,10 +96,13 @@ void           act_user_set_password_expiration_policy (ActUser   *user,
 void           act_user_set_user_expiration_policy     (ActUser   *user,
                                                         gint64     expiration_time);
 
+void           act_user_set_language              (ActUser            *user,
+                                                   const char         *language);
+void           act_user_set_languages             (ActUser            *user,
+                                                   const char * const *languages);
+
 void           act_user_set_email                 (ActUser    *user,
                                                    const char *email);
-void           act_user_set_language              (ActUser    *user,
-                                                   const char *language);
 void           act_user_set_x_session             (ActUser    *user,
                                                    const char *x_session);
 void           act_user_set_session               (ActUser    *user,
