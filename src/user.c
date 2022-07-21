@@ -1315,6 +1315,15 @@ user_change_language_authorized_cb (Daemon                *daemon,
 {
         gchar *language = data;
 
+        if (!verify_locale (language)) {
+                g_dbus_method_invocation_return_error (context,
+                                                       G_DBUS_ERROR,
+                                                       G_DBUS_ERROR_INVALID_ARGS,
+                                                       "Locale '%s' is not a valid XPG-formatted locale",
+                                                       language);
+                return;
+        }
+
         if (g_strcmp0 (accounts_user_get_language (ACCOUNTS_USER (user)), language) != 0) {
                 accounts_user_set_language (ACCOUNTS_USER (user), language);
 
