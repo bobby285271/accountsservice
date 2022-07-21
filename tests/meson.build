@@ -85,6 +85,7 @@ deps = [
 foreach test_name : tests
   exe = executable(test_name, '@0@.c'.format(test_name),
                    include_directories: top_inc,
+                   c_args: cflags,
                    dependencies: deps)
   test(test_name, exe)
 endforeach

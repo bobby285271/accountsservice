@@ -397,3 +397,50 @@ verify_locale (const char *locale)
                 return TRUE;
         return verify_xpg_locale (locale);
 }
+
+static char *userdir = NULL;
+static char *sysconfdir = NULL;
+static char *icondir = NULL;
+
+void
+init_dirs (void)
+{
+        if (getuid() != 0 &&
+            geteuid() != 0 &&
+            g_getenv ("ROOTDIR") != NULL) {
+                userdir = g_build_filename (g_getenv ("ROOTDIR"), USERDIR, NULL);
+                icondir = g_build_filename (g_getenv ("ROOTDIR"), ICONDIR, NULL);
+                sysconfdir = g_build_filename (g_getenv ("ROOTDIR"), "etc", NULL);
+                return;
+        }
+
+        userdir = g_strdup (USERDIR);
+        icondir = g_strdup (ICONDIR);
+        sysconfdir = g_strdup ("/etc/");
+}
+
+void
+free_dirs (void)
+{
+        g_free (userdir);
+        g_free (icondir);
+        g_free (sysconfdir);
+}
+
+const char *
+get_userdir (void)
+{
+        return userdir;
+}
+
+const char *
+get_sysconfdir (void)
+{
+        return sysconfdir;
+}
+
+const char *
+get_icondir (void)
+{
+	return icondir;
+}

@@ -42,3 +42,9 @@ gint get_user_groups (const gchar  *username,
 
 gboolean verify_xpg_locale (const char *locale);
 gboolean verify_locale     (const char *locale);
+
+void init_dirs (void);
+void free_dirs (void);
+const char *get_userdir (void);
+const char *get_sysconfdir (void);
+const char *get_icondir (void);
