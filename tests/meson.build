@@ -70,3 +70,18 @@ else
         test(test_name, find_program('sh'), args: ['-c', 'exit 77'])
     endforeach
 endif
+
+tests = [ 'util' ]
+
+deps = [
+  gio_unix_dep,
+  glib_dep,
+  polkit_gobject_dep,
+]
+
+foreach test_name : tests
+  exe = executable(test_name, '@0@.c'.format(test_name),
+                   include_directories: top_inc,
+                   dependencies: deps)
+  test(test_name, exe)
+endforeach
