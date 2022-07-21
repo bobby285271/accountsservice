@@ -160,7 +160,7 @@ remove_cache_files (const gchar *user_name)
         g_autofree gchar *user_filename = NULL;
         g_autofree gchar *icon_filename = NULL;
 
-        user_filename = g_build_filename (USERDIR, user_name, NULL);
+        user_filename = g_build_filename (get_userdir (), user_name, NULL);
         g_remove (user_filename);
 
         icon_filename = g_build_filename (ICONDIR, user_name, NULL);
@@ -284,10 +284,10 @@ entry_generator_cachedir (Daemon       *daemon,
 
         /* First iteration */
         if (*state == NULL) {
-                *state = g_dir_open (USERDIR, 0, &error);
+                *state = g_dir_open (get_userdir (), 0, &error);
                 if (error != NULL) {
                         if (!g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
-                                g_warning ("couldn't list user cache directory: %s", USERDIR);
+                                g_warning ("couldn't list user cache directory: %s", get_userdir ());
                         return NULL;
                 }
         }
@@ -308,7 +308,7 @@ entry_generator_cachedir (Daemon       *daemon,
                         break;
 
                 /* Only load files in this directory */
-                filename = g_build_filename (USERDIR, name, NULL);
+                filename = g_build_filename (get_userdir (), name, NULL);
                 regular = g_file_test (filename, G_FILE_TEST_IS_REGULAR);
 
                 if (regular) {
@@ -1082,7 +1082,7 @@ cache_user (Daemon *daemon,
         /* Always use the canonical user name looked up */
         user_name = user_get_user_name (user);
 
-        filename = g_build_filename (USERDIR, user_name, NULL);
+        filename = g_build_filename (get_userdir (), user_name, NULL);
         if (!g_file_test (filename, G_FILE_TEST_EXISTS)) {
                 user_save (user);
         }

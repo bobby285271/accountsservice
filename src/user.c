@@ -145,7 +145,7 @@ user_has_cache_file (User *user)
 {
         g_autofree char *filename = NULL;
 
-        filename = g_build_filename (USERDIR, user_get_user_name (user), NULL);
+        filename = g_build_filename (get_userdir (), user_get_user_name (user), NULL);
 
         return g_file_test (filename, G_FILE_TEST_EXISTS);
 }
@@ -327,7 +327,7 @@ user_update_from_template (User *user)
         if (user->template_loaded)
                 return;
 
-        filename = g_build_filename (USERDIR,
+        filename = g_build_filename (get_userdir (),
                                      accounts_user_get_user_name (ACCOUNTS_USER (user)),
                                      NULL);
 
@@ -589,7 +589,7 @@ user_update_from_cache (User *user)
         g_autofree gchar *filename = NULL;
         g_autoptr(GKeyFile) key_file = NULL;
 
-        filename = g_build_filename (USERDIR, accounts_user_get_user_name (ACCOUNTS_USER (user)), NULL);
+        filename = g_build_filename (get_userdir (), accounts_user_get_user_name (ACCOUNTS_USER (user)), NULL);
 
         key_file = g_key_file_new ();
 
@@ -668,7 +668,7 @@ save_extra_data (User *user)
                 return;
         }
 
-        filename = g_build_filename (USERDIR,
+        filename = g_build_filename (get_userdir (),
                                      accounts_user_get_user_name (ACCOUNTS_USER (user)),
                                      NULL);
         g_file_set_contents (filename, data, -1, &error);
@@ -683,9 +683,9 @@ move_extra_data (const gchar *old_name,
         g_autofree gchar *old_filename = NULL;
         g_autofree gchar *new_filename = NULL;
 
-        old_filename = g_build_filename (USERDIR,
+        old_filename = g_build_filename (get_userdir (),
                                          old_name, NULL);
-        new_filename = g_build_filename (USERDIR,
+        new_filename = g_build_filename (get_userdir (),
                                          new_name, NULL);
 
         g_rename (old_filename, new_filename);

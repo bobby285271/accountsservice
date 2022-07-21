@@ -35,6 +35,7 @@
 #include <glib-unix.h>
 
 #include "daemon.h"
+#include "util.h"
 
 #define NAME_TO_CLAIM "org.freedesktop.Accounts"
 
@@ -134,8 +135,8 @@ on_bus_acquired (GDBusConnection  *connection,
         g_autoptr(GError) error = NULL;
 
         if (!ensure_directory (ICONDIR, 0775, &error) ||
-            !ensure_directory (USERDIR, 0700, &error) ||
-            !ensure_file_permissions (USERDIR, 0600, &error)) {
+            !ensure_directory (get_userdir (), 0700, &error) ||
+            !ensure_file_permissions (get_userdir (), 0600, &error)) {
                 g_printerr ("%s\n", error->message);
                 g_main_loop_quit (loop);
                 return;
@@ -257,6 +258,8 @@ main (int argc, char *argv[])
                 g_log_set_handler (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, on_log_debug, NULL);
         g_log_set_default_handler (log_handler, NULL);
 
+        init_dirs ();
+
         loop = g_main_loop_new (NULL, FALSE);
 
         flags = G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT;
@@ -278,6 +281,8 @@ main (int argc, char *argv[])
         g_main_loop_run (loop);
 
         g_debug ("exiting");
+
+        free_dirs ();
 
         return EXIT_SUCCESS;
 }
