@@ -319,3 +319,73 @@ get_caller_uid (GDBusMethodInvocation *context,
 
         return TRUE;
 }
+
+/* Mask for components of locale spec. The ordering here is from
+ * least significant to most significant
+ */
+enum
+{
+        COMPONENT_CODESET =   1 << 0,
+        COMPONENT_TERRITORY = 1 << 1,
+        COMPONENT_MODIFIER =  1 << 2,
+        COMPONENT_LANGUAGE =  1 << 3,
+};
+
+/* Returns TRUE if value was non-empty */
+
+static gboolean
+match_info_fetch_named_non_empty (GMatchInfo  *match_info,
+                                  const char  *match_name,
+                                  char       **variable)
+{
+        g_autofree char *value = NULL;
+
+        value = g_match_info_fetch_named (match_info, match_name);
+        if (!value || *value == '\0')
+                return FALSE;
+        if (variable)
+                *variable = g_steal_pointer (&value);
+        return TRUE;
+}
+
+static guint
+explode_locale (const gchar  *locale,
+                gchar       **language,
+                gchar       **territory,
+                gchar       **codeset,
+                gchar       **modifier)
+{
+        g_autoptr(GRegex) regex = NULL;
+        g_autoptr(GMatchInfo) match_info = NULL;
+        guint mask = 0;
+
+        if (locale == NULL)
+                return mask;
+
+        regex = g_regex_new ("^(?P<language>[a-z][a-z][a-z]?)"
+                             "(_(?P<territory>[A-Z][A-Z]))?"
+                             "(\\.(?P<codeset>[A-Za-z0-9][A-Za-z-0-9]*))?"
+                             "(@(?P<modifier>[a-z]*))?$",
+                             0, 0, NULL);
+        g_assert (regex);
+
+        if (!g_regex_match (regex, locale, 0, &match_info))
+                return mask;
+
+        if (match_info_fetch_named_non_empty (match_info, "language", language))
+                mask |= COMPONENT_LANGUAGE;
+        if (match_info_fetch_named_non_empty (match_info, "territory", territory))
+                mask |= COMPONENT_TERRITORY;
+        if (match_info_fetch_named_non_empty (match_info, "codeset", codeset))
+                mask |= COMPONENT_CODESET;
+        if (match_info_fetch_named_non_empty (match_info, "modifier", modifier))
+                mask |= COMPONENT_MODIFIER;
+
+        return mask;
+}
+
+gboolean
+verify_xpg_locale (const char *locale)
+{
+        return (explode_locale (locale, NULL, NULL, NULL, NULL) & COMPONENT_LANGUAGE);
+}

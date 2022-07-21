@@ -43,6 +43,8 @@ gint get_user_groups (const gchar  *username,
                       gid_t         group,
                       gid_t       **groups);
 
+gboolean verify_xpg_locale (const char *locale);
+
 G_END_DECLS
 
 #endif /* __UTIL_H__ */
