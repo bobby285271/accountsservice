@@ -19,10 +19,7 @@
  * Written by: Matthias Clasen <mclasen@redhat.com>
  */
 
-#ifndef __ACCOUNTS_DAEMON_H__
-#define __ACCOUNTS_DAEMON_H__
-
-G_BEGIN_DECLS
+#pragma once
 
 #define TYPE_DAEMON (daemon_get_type ())
 #define DAEMON(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TYPE_DAEMON, Daemon))
@@ -33,7 +30,3 @@ G_BEGIN_DECLS
 
 typedef struct DaemonClass DaemonClass;
 typedef struct DaemonPrivate DaemonPrivate;
-
-G_END_DECLS
-
-#endif

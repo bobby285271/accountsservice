@@ -17,8 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __USER__
-#define __USER__
+#pragma once
 
 #include <sys/types.h>
 #include <pwd.h>
@@ -30,8 +29,6 @@
 #include <gio/gio.h>
 
 #include "types.h"
-
-G_BEGIN_DECLS
 
 #define TYPE_USER (user_get_type ())
 #define USER(object) (G_TYPE_CHECK_INSTANCE_CAST ((object), TYPE_USER, User))
@@ -82,7 +79,3 @@ gboolean       user_get_local_account       (User          *user);
 const gchar *  user_get_object_path         (User          *user);
 uid_t          user_get_uid                 (User          *user);
 const gchar *  user_get_shell               (User          *user);
-
-G_END_DECLS
-
-#endif

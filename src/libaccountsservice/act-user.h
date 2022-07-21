@@ -22,14 +22,11 @@
  * Facade object for user data, owned by ActUserManager
  */
 
-#ifndef __ACT_USER_H__
-#define __ACT_USER_H__
+#pragma once
 
 #include <sys/types.h>
 #include <glib.h>
 #include <glib-object.h>
-
-G_BEGIN_DECLS
 
 #define ACT_TYPE_USER (act_user_get_type())
 G_DECLARE_FINAL_TYPE (ActUser, act_user, ACT, USER, GObject)
@@ -129,7 +126,3 @@ void           act_user_set_locked                (ActUser    *user,
                                                    gboolean    locked);
 void           act_user_set_automatic_login       (ActUser   *user,
                                                    gboolean  enabled);
-
-G_END_DECLS
-
-#endif /* __ACT_USER_H__ */

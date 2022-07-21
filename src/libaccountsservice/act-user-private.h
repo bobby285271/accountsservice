@@ -21,14 +21,11 @@
  * Private interfaces to the ActUser object
  */
 
-#ifndef __ACT_USER_PRIVATE_H_
-#define __ACT_USER_PRIVATE_H_
+#pragma once
 
 #include <pwd.h>
 
 #include "act-user.h"
-
-G_BEGIN_DECLS
 
 void           _act_user_update_from_object_path   (ActUser    *user,
                                                     const char *object_path);
@@ -49,7 +46,3 @@ void           _act_user_add_session      (ActUser             *user,
                                            gboolean            is_ours);
 void           _act_user_remove_session   (ActUser             *user,
                                            const char          *session_id);
-
-G_END_DECLS
-
-#endif /* !__ACT_USER_PRIVATE_H_ */

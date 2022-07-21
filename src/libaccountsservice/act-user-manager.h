@@ -18,15 +18,12 @@
  *
  */
 
-#ifndef __ACT_USER_MANAGER_H__
-#define __ACT_USER_MANAGER_H__
+#pragma once
 
 #include <glib-object.h>
 #include <gio/gio.h>
 
 #include "act-user.h"
-
-G_BEGIN_DECLS
 
 #define ACT_TYPE_USER_MANAGER         (act_user_manager_get_type ())
 #define ACT_USER_MANAGER(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), ACT_TYPE_USER_MANAGER, ActUserManager))
@@ -147,7 +144,3 @@ gboolean            act_user_manager_delete_user_finish    (ActUserManager     *
 #if GLIB_CHECK_VERSION(2, 44, 0)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ActUserManager, g_object_unref)
 #endif
-
-G_END_DECLS
-
-#endif /* __ACT_USER_MANAGER_H__ */

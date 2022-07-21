@@ -19,8 +19,7 @@
  * Written by: Matthias Clasen <mclasen@redhat.com>
  */
 
-#ifndef __DAEMON_H__
-#define __DAEMON_H__
+#pragma once
 
 #include <sys/types.h>
 #include <glib.h>
@@ -29,8 +28,6 @@
 #include "types.h"
 #include "user.h"
 #include "accounts-generated.h"
-
-G_BEGIN_DECLS
 
 #define TYPE_DAEMON         (daemon_get_type ())
 #define DAEMON(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TYPE_DAEMON, Daemon))
@@ -95,7 +92,3 @@ gboolean   daemon_local_set_automatic_login (Daemon         *daemon,
 
 GHashTable * daemon_read_extension_ifaces (void);
 GHashTable * daemon_get_extension_ifaces (Daemon *daemon);
-
-G_END_DECLS
-
-#endif /* __DAEMON_H__ */

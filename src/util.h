@@ -19,12 +19,9 @@
  * Written by: Matthias Clasen <mclasen@redhat.com>
  */
 
-#ifndef __UTIL_H__
-#define __UTIL_H__
+#pragma once
 
 #include <glib.h>
-
-G_BEGIN_DECLS
 
 void sys_log (GDBusMethodInvocation *context,
               const gchar           *format,
@@ -45,7 +42,3 @@ gint get_user_groups (const gchar  *username,
 
 gboolean verify_xpg_locale (const char *locale);
 gboolean verify_locale     (const char *locale);
-
-G_END_DECLS
-
-#endif /* __UTIL_H__ */
