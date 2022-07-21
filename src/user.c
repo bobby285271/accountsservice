@@ -520,6 +520,10 @@ user_update_from_keyfile (User     *user,
 
         s = g_key_file_get_string (keyfile, "User", "Language", NULL);
         if (s != NULL) {
+                if (!verify_locale (s)) {
+                        g_warning ("Language '%s' set for user %s is invalid",
+                                   s, accounts_user_get_user_name (ACCOUNTS_USER (user)));
+                }
                 accounts_user_set_language (ACCOUNTS_USER (user), s);
                 g_clear_pointer (&s, g_free);
         }
