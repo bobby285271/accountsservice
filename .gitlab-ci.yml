@@ -29,6 +29,11 @@ build-fedora:
   script:
     - meson -Dgtk_doc=true _build
     - ninja -C _build all
+  artifacts:
+    name: log-and-build
+    when: always
+    paths:
+      - _build/meson-logs
 
 test-fedora:
   extends:
