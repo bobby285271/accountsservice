@@ -47,6 +47,8 @@ AD_PATH = '/org/freedesktop/Accounts'
 AD_USER = AD + '.User'
 AD_USER_PATH = AD_PATH + '/User'
 
+SIMULATED_SYSTEM_LOCALE = 'en_IE.UTF-8'
+
 class Tests(dbusmock.DBusTestCase):
     @classmethod
     def setUpClass(cls):
@@ -143,6 +145,7 @@ class Tests(dbusmock.DBusTestCase):
         env['LD_PRELOAD'] = os.getenv('MOCKLIBC_LD_PRELOAD')
         env['MOCK_PASSWD'] = os.path.join(self.test_dir, 'etc', 'passwd')
         env['MOCK_GROUP'] = os.path.join(self.test_dir, 'etc', 'group')
+        env['LC_ALL'] = SIMULATED_SYSTEM_LOCALE
 
         self.log = tempfile.NamedTemporaryFile()
         if os.getenv('VALGRIND') != None:
