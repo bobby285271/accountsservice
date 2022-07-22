@@ -51,8 +51,8 @@
 #include "user.h"
 #include "accounts-user-generated.h"
 
-#define PATH_PASSWD "/etc/passwd"
-#define PATH_SHADOW "/etc/shadow"
+#define PATH_PASSWD "passwd"
+#define PATH_SHADOW "shadow"
 #define PATH_GROUP "/etc/group"
 
 enum {
@@ -188,12 +188,15 @@ entry_generator_fgetpwent (Daemon       *daemon,
         /* First iteration */
         if (*state == NULL) {
                 GHashTable *shadow_users = NULL;
+                g_autofree char *shadow_path = NULL;
+                g_autofree char *passwd_path = NULL;
                 FILE *fp;
                 struct spwd *shadow_entry;
 
-                fp = fopen (PATH_SHADOW, "r");
+                shadow_path = g_build_filename (get_sysconfdir (), PATH_SHADOW, NULL);
+                fp = fopen (shadow_path, "r");
                 if (fp == NULL) {
-                        g_warning ("Unable to open %s: %s", PATH_SHADOW, g_strerror (errno));
+                        g_warning ("Unable to open %s: %s", shadow_path, g_strerror (errno));
                         return NULL;
                 }
 
@@ -223,10 +226,11 @@ entry_generator_fgetpwent (Daemon       *daemon,
                         return NULL;
                 }
 
-                fp = fopen (PATH_PASSWD, "r");
+                passwd_path = g_build_filename (get_sysconfdir (), PATH_PASSWD, NULL);
+                fp = fopen (passwd_path, "r");
                 if (fp == NULL) {
                         g_clear_pointer (&shadow_users, g_hash_table_unref);
-                        g_warning ("Unable to open %s: %s", PATH_PASSWD, g_strerror (errno));
+                        g_warning ("Unable to open %s: %s", passwd_path, g_strerror (errno));
                         return NULL;
                 }
 
@@ -746,6 +750,8 @@ static void
 daemon_init (Daemon *daemon)
 {
         DaemonPrivate *priv = daemon_get_instance_private (daemon);
+        g_autofree char *shadow_path = NULL;
+        g_autofree char *passwd_path = NULL;
 
         priv->extension_ifaces = daemon_read_extension_ifaces ();
 
@@ -753,11 +759,13 @@ daemon_init (Daemon *daemon)
 
         priv->pending_list_cached_users = g_queue_new ();
 
+        passwd_path = g_build_filename (get_sysconfdir (), PATH_PASSWD, NULL);
         priv->passwd_monitor = setup_monitor (daemon,
-                                              PATH_PASSWD,
+                                              passwd_path,
                                               on_users_monitor_changed);
+        shadow_path = g_build_filename (get_sysconfdir (), PATH_SHADOW, NULL);
         priv->shadow_monitor = setup_monitor (daemon,
-                                              PATH_SHADOW,
+                                              shadow_path,
                                               on_users_monitor_changed);
         priv->group_monitor = setup_monitor (daemon,
                                              PATH_GROUP,
