@@ -24,6 +24,7 @@ build-fedora:
   image: fedora:rawhide
   stage: build
   before_script:
+    - unset CI_JOB_JWT
     - dnf install -y $DEPENDENCIES $([ $CI_JOB_STAGE = test ] && echo $TEST_DEPENDENCIES)
   script:
     - meson -Dgtk_doc=true _build
