@@ -1,7 +1,10 @@
+libmocklibc = subproject('mocklibc').get_variable('libmocklibc')
+
 envs = environment()
 # Enable debug messages and abort on critical warnings
 envs.set('G_DEBUG', 'fatal-criticals')
 envs.set('G_MESSAGES_DEBUG', 'all')
+envs.set('MOCKLIBC_LD_PRELOAD', libmocklibc.full_path())
 
 # Setup paths
 accountsservice_build_dir = meson.build_root() / 'src' / 'libaccountsservice'
