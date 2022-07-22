@@ -17,7 +17,7 @@ if get_option('introspection')
     ]
 
     foreach module : python3_test_modules
-        if run_command(python3, '-c', 'import @0@'.format(module)).returncode() != 0
+        if run_command(python3, '-c', 'import @0@'.format(module), check: false).returncode() != 0
             python3_test_modules_found = false
             warning('Python3 module \'' + module + '\' needed by test suite not found')
             break
@@ -38,7 +38,7 @@ if python3_test_modules_found
         base_args = test_file
         suite = ['accounts-service']
 
-        r = run_command(unittest_inspector, test_file)
+        r = run_command(unittest_inspector, test_file, check: true)
         unit_tests = r.stdout().strip().split('\n')
 
         if r.returncode() == 0 and unit_tests.length() > 0

@@ -1,6 +1,6 @@
 project(
   'accountsservice', 'c',
-  version: run_command(['./generate-version.sh']).stdout().strip(),
+  version: run_command(['./generate-version.sh'], check: true).stdout().strip(),
   license: 'GPL3+',
   default_options: 'buildtype=debugoptimized',
   meson_version: '>= 0.50.0',
@@ -102,7 +102,7 @@ elif cc.has_header_symbol('paths.h', '_PATH_WTMPX')
   config_h.set('PATH_WTMP', '_PATH_WTMPX')
 else
   path_wtmp = '/var/log/utx.log'
-  assert(run_command('test', '-e', path_wtmp).returncode() == 0, 'Do not know which filename to watch for wtmp changes')
+  assert(run_command('test', '-e', path_wtmp, check: false).returncode() == 0, 'Do not know which filename to watch for wtmp changes')
   config_h.set_quoted('PATH_WTMP', path_wtmp)
 endif
 
@@ -186,10 +186,10 @@ endif
 # Core configuration
 admin_group = get_option('admin_group')
 if admin_group == ''
-  if run_command('test', '-e', '/etc/debian_version').returncode() == 0
+  if run_command('test', '-e', '/etc/debian_version', check: false).returncode() == 0
     admin_group = 'sudo'
   # FIXME: this has been left for documentation purposes
-  elif run_command('test', '-e', '/etc/sysconfig/network-scripts').returncode() == 0
+  elif run_command('test', '-e', '/etc/sysconfig/network-scripts', check: false).returncode() == 0
     admin_group = 'wheel'
   else
     admin_group = 'wheel'
