@@ -2,6 +2,7 @@ variables:
   DEPENDENCIES: dbus-devel
                 gcc
                 gettext-devel
+                git
                 glib-devel
                 gobject-introspection-devel
                 gtk-doc
