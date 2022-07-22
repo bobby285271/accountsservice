@@ -389,3 +389,11 @@ verify_xpg_locale (const char *locale)
 {
         return (explode_locale (locale, NULL, NULL, NULL, NULL) & COMPONENT_LANGUAGE);
 }
+
+gboolean
+verify_locale (const char *locale)
+{
+        if (locale && *locale == '\0')
+                return TRUE;
+        return verify_xpg_locale (locale);
+}
