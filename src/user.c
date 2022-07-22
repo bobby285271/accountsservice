@@ -503,8 +503,7 @@ user_update_from_pwent (User          *user,
         accounts_user_set_password_mode (ACCOUNTS_USER (user), mode);
         is_system_account = !user_classify_is_human (accounts_user_get_uid (ACCOUNTS_USER (user)),
                                                      accounts_user_get_user_name (ACCOUNTS_USER (user)),
-                                                     accounts_user_get_shell (ACCOUNTS_USER (user)),
-                                                     passwd);
+                                                     accounts_user_get_shell (ACCOUNTS_USER (user)));
         accounts_user_set_system_account (ACCOUNTS_USER (user), is_system_account);
 
         if (!user_has_cache_file (user))

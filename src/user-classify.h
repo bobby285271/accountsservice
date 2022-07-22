@@ -25,5 +25,4 @@
 
 gboolean        user_classify_is_human          (uid_t        uid,
                                                  const gchar *username,
-                                                 const gchar *shell,
-                                                 const gchar *password_hash);
+                                                 const gchar *shell);

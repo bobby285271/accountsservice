@@ -250,7 +250,7 @@ entry_generator_fgetpwent (Daemon       *daemon,
                         }
 
                         /* Skip system users... */
-                        if (!user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell, (*spent)? (*spent)->sp_pwdp : NULL)) {
+                        if (!user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell)) {
                                 g_debug ("skipping user: %s", pwent->pw_name);
 
                                 return entry_generator_fgetpwent (daemon, users, state, spent);
