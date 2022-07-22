@@ -44,6 +44,8 @@ if os.geteuid() == 0 or os.getuid() == 0:
 
 AD = 'org.freedesktop.Accounts'
 AD_PATH = '/org/freedesktop/Accounts'
+AD_USER = AD + '.User'
+AD_USER_PATH = AD_PATH + '/User'
 
 class Tests(dbusmock.DBusTestCase):
     @classmethod
@@ -190,6 +192,14 @@ class Tests(dbusmock.DBusTestCase):
             AD_PATH, 'org.freedesktop.DBus.Properties', None)
         return proxy.Get('(ss)', AD, name)
 
+    def get_user_dbus_property(self, user, name):
+        '''Get property value from user D-Bus interface.'''
+
+        proxy = Gio.DBusProxy.new_sync(
+            self.dbus, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None, AD,
+            user, 'org.freedesktop.DBus.Properties', None)
+        return proxy.Get('(ss)', 'org.freedesktop.Accounts.User', name)
+
     def have_text_in_log(self, text):
         return self.count_text_in_log(text) > 0
 
@@ -217,6 +227,22 @@ class Tests(dbusmock.DBusTestCase):
     #
     # Actual test cases
     #
+
+    def test_user_properties(self):
+        '''check a user's properties'''
+
+        self.start_daemon()
+
+        res = self.proxy.call_sync('ListCachedUsers', GLib.Variant('()', ()), 0, -1, None)
+        self.assertIsNotNone(res)
+        user = res[0][0]
+        self.assertEqual(user, AD_USER_PATH + '1001')
+
+        self.assertEqual(self.get_user_dbus_property(user, 'IconFile'), self.test_dir + '/var/lib/AccountsService/icons/rupert')
+
+        # gdbus call --system --dest org.freedesktop.Accounts --object-path /org/freedesktop/Accounts --method org.freedesktop.Accounts.ListCachedUsers
+
+        self.stop_daemon()
 
     def test_startup(self):
         '''startup test'''
