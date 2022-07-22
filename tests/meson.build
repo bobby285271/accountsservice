@@ -4,6 +4,8 @@ envs = environment()
 # Enable debug messages and abort on critical warnings
 envs.set('G_DEBUG', 'fatal-criticals')
 envs.set('G_MESSAGES_DEBUG', 'all')
+envs.set('top_srcdir', meson.source_root())
+envs.set('top_builddir', meson.build_root())
 envs.set('MOCKLIBC_LD_PRELOAD', libmocklibc.full_path())
 
 # Setup paths
@@ -30,6 +32,7 @@ endif
 
 tests = [
     'libaccountsservice',
+    'daemon'
 ]
 
 if python3_test_modules_found
@@ -87,5 +90,8 @@ foreach test_name : tests
                    include_directories: top_inc,
                    c_args: cflags,
                    dependencies: deps)
-  test(test_name, exe)
+  test(test_name, exe,
+    depends: daemon,
+    env: envs,
+  )
 endforeach
