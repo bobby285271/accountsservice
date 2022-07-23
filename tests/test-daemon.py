@@ -253,6 +253,30 @@ class Tests(dbusmock.DBusTestCase):
     # Actual test cases
     #
 
+    def test_language(self):
+        '''check that language setting are verified'''
+
+        self.polkitd_start()
+        self._polkitd_obj.SetAllowed(['org.freedesktop.accounts.change-own-user-data',
+            'org.freedesktop.accounts.user-administration'])
+
+        self.start_daemon()
+
+        res = self.proxy.call_sync('ListCachedUsers', GLib.Variant('()', ()), 0, -1, None)
+        user = res[0][0]
+
+        user_proxy = Gio.DBusProxy.new_sync(
+                self.dbus, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None, AD,
+                user, AD_USER, None)
+        user_proxy.call_sync('SetLanguage', GLib.Variant('(s)', ('en_GB.UTF-8',)), 0, -1, None)
+        self.assertEqual(self.get_user_dbus_property(user, 'Language'), 'en_GB.UTF-8')
+
+        with self.assertRaises(gi.repository.GLib.GError) as cm:
+            user_proxy.call_sync('SetLanguage', GLib.Variant('(s)', ('blahblahblah',)), 0, -1, None)
+
+        self.assertIn('is not a valid XPG-formatted locale', str(cm.exception))
+
+
     def test_user_properties(self):
         '''check a user's properties'''
 
