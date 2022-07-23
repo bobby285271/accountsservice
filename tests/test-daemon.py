@@ -87,6 +87,7 @@ class Tests(dbusmock.DBusTestCase):
 
         cls.dbus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
         cls.dbus_con = cls.get_dbus(True)
+        cls._polkitd = None
 
     @classmethod
     def tearDownClass(cls):
@@ -183,6 +184,30 @@ class Tests(dbusmock.DBusTestCase):
             self.daemon.wait()
         self.daemon = None
         self.proxy = None
+
+    def polkitd_start(self):
+        if self._polkitd:
+            return
+
+        (self._polkitd, self._polkitd_obj) = self.spawn_server_template(
+            'polkitd', {})
+        self.addCleanup(self.stop_server, '_polkitd', '_polkitd_obj')
+
+        return self._polkitd
+
+    def stop_server(self, proc_attr, obj_attr):
+        proc = getattr(self, proc_attr, None)
+        if proc is None:
+            return
+
+        proc.terminate()
+        try:
+            proc.wait(timeout=1)
+        except subprocess.TimeoutExpired as e:
+            proc.kill()
+
+        delattr(self, proc_attr)
+        delattr(self, obj_attr)
 
     def get_dbus_property(self, name):
         '''Get property value from daemon D-Bus interface.'''
