@@ -285,16 +285,16 @@ class Tests(dbusmock.DBusTestCase):
         user_proxy.call_sync('SetLanguages', GLib.Variant('(as)', (['fr_FR.UTF-8', 'en_GB.UTF-8'],)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Language'), 'fr_FR.UTF-8')
         self.assertEqual(self.get_user_dbus_property(user, 'Languages'), ['fr_FR.UTF-8', 'en_GB.UTF-8'])
-        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_GB.UTF-8', 'fr_FR.UTF-8', SIMULATED_SYSTEM_LOCALE])
+        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_GB.UTF-8', SIMULATED_SYSTEM_LOCALE, 'fr_FR.UTF-8'])
 
         user_proxy.call_sync('SetLanguage', GLib.Variant('(s)', ('en_US.UTF-8',)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Language'), 'en_US.UTF-8')
         self.assertEqual(self.get_user_dbus_property(user, 'Languages'), ['en_US.UTF-8'])
-        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_US.UTF-8', SIMULATED_SYSTEM_LOCALE])
+        self.assertEqual(self.proxy.GetUsersLanguages(), [SIMULATED_SYSTEM_LOCALE, 'en_US.UTF-8'])
 
         user_proxy.call_sync('SetLanguages', GLib.Variant('(as)', (['fr_FR.UTF-8', 'en_GB.UTF-8'],)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Languages'), ['fr_FR.UTF-8', 'en_GB.UTF-8'])
-        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_GB.UTF-8', 'fr_FR.UTF-8', SIMULATED_SYSTEM_LOCALE])
+        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_GB.UTF-8', SIMULATED_SYSTEM_LOCALE, 'fr_FR.UTF-8'])
 
         user_proxy.call_sync('SetLanguages', GLib.Variant('(as)', ([''],)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Language'), '')
@@ -311,7 +311,7 @@ class Tests(dbusmock.DBusTestCase):
         self.start_daemon()
 
         res = self.proxy.call_sync('ListCachedUsers', GLib.Variant('()', ()), 0, -1, None)
-        user = res[0][0]
+        user = res[0][1]
 
         user_proxy = Gio.DBusProxy.new_sync(
                 self.dbus, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None, AD,
@@ -332,7 +332,7 @@ class Tests(dbusmock.DBusTestCase):
 
         res = self.proxy.call_sync('ListCachedUsers', GLib.Variant('()', ()), 0, -1, None)
         self.assertIsNotNone(res)
-        user = res[0][0]
+        user = res[0][1]
         self.assertEqual(user, AD_USER_PATH + '1001')
 
         self.assertEqual(self.get_user_dbus_property(user, 'IconFile'), self.test_dir + '/var/lib/AccountsService/icons/rupert')
