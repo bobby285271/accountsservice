@@ -278,21 +278,26 @@ class Tests(dbusmock.DBusTestCase):
         user_proxy.call_sync('SetLanguage', GLib.Variant('(s)', ('en_GB.UTF-8',)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Language'), 'en_GB.UTF-8')
         self.assertEqual(self.get_user_dbus_property(user, 'Languages'), ['en_GB.UTF-8'])
+        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_GB.UTF-8', SIMULATED_SYSTEM_LOCALE])
 
         user_proxy.call_sync('SetLanguages', GLib.Variant('(as)', (['fr_FR.UTF-8', 'en_GB.UTF-8'],)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Language'), 'fr_FR.UTF-8')
         self.assertEqual(self.get_user_dbus_property(user, 'Languages'), ['fr_FR.UTF-8', 'en_GB.UTF-8'])
+        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_GB.UTF-8', 'fr_FR.UTF-8', SIMULATED_SYSTEM_LOCALE])
 
         user_proxy.call_sync('SetLanguage', GLib.Variant('(s)', ('en_US.UTF-8',)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Language'), 'en_US.UTF-8')
         self.assertEqual(self.get_user_dbus_property(user, 'Languages'), ['en_US.UTF-8'])
+        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_US.UTF-8', SIMULATED_SYSTEM_LOCALE])
 
         user_proxy.call_sync('SetLanguages', GLib.Variant('(as)', (['fr_FR.UTF-8', 'en_GB.UTF-8'],)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Languages'), ['fr_FR.UTF-8', 'en_GB.UTF-8'])
+        self.assertEqual(self.proxy.GetUsersLanguages(), ['en_GB.UTF-8', 'fr_FR.UTF-8', SIMULATED_SYSTEM_LOCALE])
 
         user_proxy.call_sync('SetLanguages', GLib.Variant('(as)', ([''],)), 0, -1, None)
         self.assertEqual(self.get_user_dbus_property(user, 'Language'), '')
         self.assertEqual(self.get_user_dbus_property(user, 'Languages'), [''])
+        self.assertEqual(self.proxy.GetUsersLanguages(), [SIMULATED_SYSTEM_LOCALE])
 
     def test_language(self):
         '''check that language setting are verified'''
