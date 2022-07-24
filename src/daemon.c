@@ -1022,7 +1022,6 @@ finish_list_cached_users (ListUserData *data)
         g_autoptr(GPtrArray) object_paths = NULL;
         GHashTableIter iter;
         gpointer key, value;
-        uid_t uid;
 
         object_paths = g_ptr_array_new ();
 
@@ -1030,6 +1029,7 @@ finish_list_cached_users (ListUserData *data)
         while (g_hash_table_iter_next (&iter, &key, &value)) {
                 const gchar *name = key;
                 User *user = value;
+                uid_t uid;
 
                 uid = user_get_uid (user);
 
