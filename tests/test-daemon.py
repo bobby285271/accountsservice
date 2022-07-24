@@ -132,14 +132,16 @@ class Tests(dbusmock.DBusTestCase):
         shutil.copytree(os.path.join(srcdir, 'tests', 'data', 'etc'), os.path.join(self.test_dir, 'etc'))
         shutil.copytree(os.path.join(srcdir, 'tests', 'data', 'var'), os.path.join(self.test_dir, 'var'))
 
-        rupert_path = os.path.join(self.test_dir, 'var', 'lib', 'AccountsService', 'users', 'rupert')
-        with open(rupert_path + '.in') as f:
-                content = f.read()
-                content = content.replace("@ROOTDIR@", self.test_dir)
-                os.remove(rupert_path + '.in')
-                with open(rupert_path, "w") as d:
-                    d.write(content)
-                    d.close()
+        users = ['rupert']
+        for user in users:
+            path = os.path.join(self.test_dir, 'var', 'lib', 'AccountsService', 'users', user)
+            with open(path + '.in') as f:
+                    content = f.read()
+                    content = content.replace("@ROOTDIR@", self.test_dir)
+                    os.remove(path + '.in')
+                    with open(path, "w") as d:
+                        d.write(content)
+                        d.close()
 
         env['ROOTDIR'] = self.test_dir
         env['LD_PRELOAD'] = os.getenv('MOCKLIBC_LD_PRELOAD')
