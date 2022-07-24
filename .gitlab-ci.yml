@@ -44,6 +44,7 @@ test-fedora:
     - useradd -u 5555 -ms /bin/bash user
     - su user -c .ci/run-tests.sh
     - cp -r /home/user/accountsservice/_build/ ./
+    - .ci/fail_skipped_tests.py _build/meson-logs/testlog.junit.xml
     - cat _build/meson-logs/coverage.txt
   artifacts:
     name: log-and-coverage
