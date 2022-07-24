@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -1074,6 +1075,84 @@ daemon_list_cached_users (AccountsAccounts      *accounts,
         return TRUE;
 }
 
+static int
+sort_languages (gconstpointer element_1,
+                gconstpointer element_2,
+                GHashTable *language_frequency_map)
+{
+        const char *language_1 = *(const char **) element_1;
+        const char *language_2 = *(const char **) element_2;
+        int count_1, count_2;
+
+        count_1 = GPOINTER_TO_INT (g_hash_table_lookup (language_frequency_map, language_1));
+        count_2 = GPOINTER_TO_INT (g_hash_table_lookup (language_frequency_map, language_2));
+
+        if (count_2 == count_1) {
+                return strcmp (language_1, language_2);
+        }
+
+        return count_2 - count_1;
+}
+
+static gboolean
+daemon_get_users_languages (AccountsAccounts      *accounts,
+                            GDBusMethodInvocation *context)
+{
+        Daemon *daemon = (Daemon*)accounts;
+        DaemonPrivate *priv = daemon_get_instance_private (daemon);
+        g_autoptr(GHashTable) language_frequency_map = NULL;
+        GHashTableIter users_iter, language_frequency_map_iter;
+        gpointer key, value;
+        g_autoptr(GPtrArray) languages_array = NULL;
+        const char *system_locale;
+
+        language_frequency_map = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+
+        system_locale = setlocale (LC_MESSAGES, NULL);
+
+        g_hash_table_insert (language_frequency_map, g_strdup (system_locale), 0);
+
+        g_hash_table_iter_init (&users_iter, priv->users);
+        while (g_hash_table_iter_next (&users_iter, &key, &value)) {
+                const char *name = key;
+                User *user = value;
+                const char * const *languages = NULL;
+                guint i;
+
+                if (user_get_system_account (user))
+                        continue;
+
+                languages = accounts_user_get_languages (ACCOUNTS_USER (user));
+                for (i = 0; languages != NULL && languages[i] != NULL; i++) {
+                        int count;
+                        const char *locale;
+
+                        if (languages[i][0] != '\0')
+                                locale = languages[i];
+                        else
+                                locale = system_locale;
+
+                        count = GPOINTER_TO_INT (g_hash_table_lookup (language_frequency_map, locale));
+                        count++;
+
+                        g_debug ("Adding lang '%s' for user %s to the list (count now %d)", locale, name, count);
+
+                        g_hash_table_insert (language_frequency_map, g_strdup (locale), GINT_TO_POINTER (count));
+                }
+        }
+
+        languages_array = g_ptr_array_new ();
+        g_hash_table_iter_init (&language_frequency_map_iter, language_frequency_map);
+        while (g_hash_table_iter_next (&language_frequency_map_iter, &key, &value)) {
+                g_ptr_array_add (languages_array, key);
+        }
+        g_ptr_array_sort_with_data (languages_array, (GCompareDataFunc) sort_languages, language_frequency_map);
+        g_ptr_array_add (languages_array, NULL);
+
+        accounts_accounts_complete_get_users_languages (accounts, context, (const char * const *) languages_array->pdata);
+        return TRUE;
+}
+
 static const gchar *
 daemon_get_daemon_version (AccountsAccounts *object)
 {
@@ -1706,6 +1785,7 @@ daemon_accounts_accounts_iface_init (AccountsAccountsIface *iface)
         iface->handle_find_user_by_id = daemon_find_user_by_id;
         iface->handle_find_user_by_name = daemon_find_user_by_name;
         iface->handle_list_cached_users = daemon_list_cached_users;
+        iface->handle_get_users_languages = daemon_get_users_languages;
         iface->get_daemon_version = daemon_get_daemon_version;
         iface->handle_cache_user = daemon_cache_user;
         iface->handle_uncache_user = daemon_uncache_user;
