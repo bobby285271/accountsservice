@@ -134,7 +134,7 @@ on_bus_acquired (GDBusConnection  *connection,
         Daemon *daemon;
         g_autoptr(GError) error = NULL;
 
-        if (!ensure_directory (ICONDIR, 0775, &error) ||
+        if (!ensure_directory (get_icondir (), 0775, &error) ||
             !ensure_directory (get_userdir (), 0700, &error) ||
             !ensure_file_permissions (get_userdir (), 0600, &error)) {
                 g_printerr ("%s\n", error->message);

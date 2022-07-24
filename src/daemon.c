@@ -163,7 +163,7 @@ remove_cache_files (const gchar *user_name)
         user_filename = g_build_filename (get_userdir (), user_name, NULL);
         g_remove (user_filename);
 
-        icon_filename = g_build_filename (ICONDIR, user_name, NULL);
+        icon_filename = g_build_filename (get_icondir (), user_name, NULL);
         g_remove (icon_filename);
 }
 

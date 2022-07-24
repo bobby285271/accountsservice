@@ -1936,7 +1936,7 @@ user_change_icon_file_authorized_cb (Daemon                *daemon,
 
                 g_clear_pointer (&filename, g_free);
 
-                dest_path = g_build_filename (ICONDIR, accounts_user_get_user_name (ACCOUNTS_USER (user)), NULL);
+                dest_path = g_build_filename (get_icondir (), accounts_user_get_user_name (ACCOUNTS_USER (user)), NULL);
                 dest = g_file_new_for_path (dest_path);
 
                 if (!g_file_delete (dest, NULL, &error) &&
@@ -1979,7 +1979,7 @@ user_change_icon_file_authorized_cb (Daemon                *daemon,
 
         if ((mode & S_IROTH) == 0 ||
             (!g_str_has_prefix (filename, DATADIR) &&
-             !g_str_has_prefix (filename, ICONDIR))) {
+             !g_str_has_prefix (filename, get_icondir ()))) {
                 g_autofree gchar *dest_path = NULL;
                 g_autoptr(GFile) dest = NULL;
                 const gchar *argv[3];
@@ -1996,7 +1996,7 @@ user_change_icon_file_authorized_cb (Daemon                *daemon,
                         return;
                 }
 
-                dest_path = g_build_filename (ICONDIR, accounts_user_get_user_name (ACCOUNTS_USER (user)), NULL);
+                dest_path = g_build_filename (get_icondir (), accounts_user_get_user_name (ACCOUNTS_USER (user)), NULL);
                 dest = g_file_new_for_path (dest_path);
 
                 output = G_OUTPUT_STREAM (g_file_replace (dest, NULL, FALSE, 0, NULL, &error));
