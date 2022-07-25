@@ -132,7 +132,7 @@ class Tests(dbusmock.DBusTestCase):
         shutil.copytree(os.path.join(srcdir, 'tests', 'data', 'etc'), os.path.join(self.test_dir, 'etc'))
         shutil.copytree(os.path.join(srcdir, 'tests', 'data', 'var'), os.path.join(self.test_dir, 'var'))
 
-        users = ['rupert']
+        users = ['rupert', 'benedict']
         for user in users:
             path = os.path.join(self.test_dir, 'var', 'lib', 'AccountsService', 'users', user)
             with open(path + '.in') as f:
