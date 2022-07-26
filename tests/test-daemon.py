@@ -156,6 +156,10 @@ class Tests(dbusmock.DBusTestCase):
 
         # wait until the daemon gets online
         timeout = 100
+
+        if os.getenv('VALGRIND') != None:
+            timeout = timeout * 33
+
         while timeout > 0:
             time.sleep(0.1)
             timeout -= 1
