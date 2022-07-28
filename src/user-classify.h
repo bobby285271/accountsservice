@@ -23,6 +23,6 @@
 #include <sys/types.h>
 #include <glib.h>
 
-gboolean        user_classify_is_human          (uid_t        uid,
-                                                 const gchar *username,
-                                                 const gchar *shell);
+gboolean        user_classify_is_human (uid_t        uid,
+                                        const gchar *username,
+                                        const gchar *shell);

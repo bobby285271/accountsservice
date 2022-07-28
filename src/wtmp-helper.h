@@ -26,5 +26,5 @@
 #include <shadow.h>
 #endif
 
-const gchar *           wtmp_helper_get_path_for_monitor                (void);
-void                    wtmp_helper_update_login_frequencies            (GHashTable *users);
+const gchar *           wtmp_helper_get_path_for_monitor (void);
+void                    wtmp_helper_update_login_frequencies (GHashTable *users);

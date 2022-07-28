@@ -41,7 +41,8 @@ get_cmdline_of_pid (GPid pid)
         g_autofree gchar *filename = NULL;
         g_autofree gchar *contents = NULL;
         gsize contents_len;
-        g_autoptr(GError) error = NULL;
+
+        g_autoptr (GError) error = NULL;
         guint n;
 
         filename = g_strdup_printf ("/proc/%d/cmdline", (int) pid);
@@ -70,8 +71,8 @@ static gboolean
 get_caller_pid (GDBusMethodInvocation *context,
                 GPid                  *pid)
 {
-        g_autoptr(GVariant) reply = NULL;
-        g_autoptr(GError) error = NULL;
+        g_autoptr (GVariant) reply = NULL;
+        g_autoptr (GError) error = NULL;
         guint32 pid_as_int;
 
         reply = g_dbus_connection_call_sync (g_dbus_method_invocation_get_connection (context),
@@ -103,7 +104,7 @@ get_caller_pid (GDBusMethodInvocation *context,
 void
 sys_log (GDBusMethodInvocation *context,
          const gchar           *format,
-                                ...)
+         ...)
 {
         va_list args;
         g_autofree gchar *msg = NULL;
@@ -159,7 +160,7 @@ static gboolean
 compat_check_exit_status (int      estatus,
                           GError **error)
 {
-#if GLIB_CHECK_VERSION(2, 33, 12)
+#if GLIB_CHECK_VERSION (2, 33, 12)
         return g_spawn_check_exit_status (estatus, error);
 #else
         if (!WIFEXITED (estatus)) {
@@ -174,7 +175,7 @@ compat_check_exit_status (int      estatus,
                              G_SPAWN_ERROR,
                              G_SPAWN_ERROR_FAILED,
                              "Exited with code %d",
-                             WEXITSTATUS(estatus));
+                             WEXITSTATUS (estatus));
                 return FALSE;
         }
         return TRUE;
@@ -182,26 +183,26 @@ compat_check_exit_status (int      estatus,
 }
 
 gboolean
-spawn_sync (const gchar  *argv[],
-            GError      **error)
+spawn_sync (const gchar *argv[],
+            GError     **error)
 {
         gboolean ret = FALSE;
         gint status;
 
-        if (!g_spawn_sync (NULL, (gchar**) argv, NULL, 0, NULL, NULL, NULL, NULL, &status, error))
+        if (!g_spawn_sync (NULL, (gchar **) argv, NULL, 0, NULL, NULL, NULL, NULL, &status, error))
                 goto out;
         if (!compat_check_exit_status (status, error))
                 goto out;
 
         ret = TRUE;
- out:
+out:
         return ret;
 }
 
 gint
-get_user_groups (const gchar  *user,
-                 gid_t         group,
-                 gid_t       **groups)
+get_user_groups (const gchar *user,
+                 gid_t        group,
+                 gid_t      **groups)
 {
         gint res;
         gint ngroups;
@@ -239,7 +240,7 @@ get_admin_groups (gid_t  *admin_gid_out,
                   gid_t **groups_out,
                   gsize  *n_groups_out)
 {
-        g_auto(GStrv) extra_admin_groups = NULL;
+        g_auto (GStrv) extra_admin_groups = NULL;
         g_autofree gid_t *extra_admin_groups_gids = NULL;
         gsize n_extra_admin_groups_gids = 0;
         gsize i;
@@ -292,8 +293,8 @@ gboolean
 get_caller_uid (GDBusMethodInvocation *context,
                 gint                  *uid)
 {
-        g_autoptr(GVariant) reply = NULL;
-        g_autoptr(GError) error = NULL;
+        g_autoptr (GVariant) reply = NULL;
+        g_autoptr (GError) error = NULL;
 
         reply = g_dbus_connection_call_sync (g_dbus_method_invocation_get_connection (context),
                                              "org.freedesktop.DBus",
@@ -325,18 +326,18 @@ get_caller_uid (GDBusMethodInvocation *context,
  */
 enum
 {
-        COMPONENT_CODESET =   1 << 0,
+        COMPONENT_CODESET   =   1 << 0,
         COMPONENT_TERRITORY = 1 << 1,
-        COMPONENT_MODIFIER =  1 << 2,
-        COMPONENT_LANGUAGE =  1 << 3,
+        COMPONENT_MODIFIER  =  1 << 2,
+        COMPONENT_LANGUAGE  =  1 << 3,
 };
 
 /* Returns TRUE if value was non-empty */
 
 static gboolean
-match_info_fetch_named_non_empty (GMatchInfo  *match_info,
-                                  const char  *match_name,
-                                  char       **variable)
+match_info_fetch_named_non_empty (GMatchInfo *match_info,
+                                  const char *match_name,
+                                  char      **variable)
 {
         g_autofree char *value = NULL;
 
@@ -349,14 +350,14 @@ match_info_fetch_named_non_empty (GMatchInfo  *match_info,
 }
 
 static guint
-explode_locale (const gchar  *locale,
-                gchar       **language,
-                gchar       **territory,
-                gchar       **codeset,
-                gchar       **modifier)
+explode_locale (const gchar *locale,
+                gchar      **language,
+                gchar      **territory,
+                gchar      **codeset,
+                gchar      **modifier)
 {
-        g_autoptr(GRegex) regex = NULL;
-        g_autoptr(GMatchInfo) match_info = NULL;
+        g_autoptr (GRegex) regex = NULL;
+        g_autoptr (GMatchInfo) match_info = NULL;
         guint mask = 0;
 
         if (locale == NULL)
@@ -387,7 +388,7 @@ explode_locale (const gchar  *locale,
 gboolean
 verify_xpg_locale (const char *locale)
 {
-        return (explode_locale (locale, NULL, NULL, NULL, NULL) & COMPONENT_LANGUAGE);
+        return explode_locale (locale, NULL, NULL, NULL, NULL) & COMPONENT_LANGUAGE;
 }
 
 gboolean
@@ -405,8 +406,8 @@ static char *icondir = NULL;
 void
 init_dirs (void)
 {
-        if (getuid() != 0 &&
-            geteuid() != 0 &&
+        if (getuid () != 0 &&
+            geteuid () != 0 &&
             g_getenv ("ROOTDIR") != NULL) {
                 userdir = g_build_filename (g_getenv ("ROOTDIR"), USERDIR, NULL);
                 icondir = g_build_filename (g_getenv ("ROOTDIR"), ICONDIR, NULL);
@@ -442,5 +443,5 @@ get_sysconfdir (void)
 const char *
 get_icondir (void)
 {
-	return icondir;
+        return icondir;
 }

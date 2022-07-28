@@ -25,23 +25,24 @@
 
 void sys_log (GDBusMethodInvocation *context,
               const gchar           *format,
-                                     ...);
+              ...);
 
-gboolean get_caller_uid (GDBusMethodInvocation *context, gint *uid);
+gboolean get_caller_uid (GDBusMethodInvocation *context,
+                         gint                  *uid);
 
-gboolean spawn_sync (const gchar  *argv[],
-                     GError      **error);
+gboolean spawn_sync (const gchar *argv[],
+                     GError     **error);
 
 gboolean get_admin_groups (gid_t  *admin_gid_out,
                            gid_t **groups_out,
                            gsize  *n_groups_out);
 
-gint get_user_groups (const gchar  *username,
-                      gid_t         group,
-                      gid_t       **groups);
+gint get_user_groups (const gchar *username,
+                      gid_t        group,
+                      gid_t      **groups);
 
 gboolean verify_xpg_locale (const char *locale);
-gboolean verify_locale     (const char *locale);
+gboolean verify_locale (const char *locale);
 
 void init_dirs (void);
 void free_dirs (void);
