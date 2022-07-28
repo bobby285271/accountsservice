@@ -15,8 +15,10 @@ variables:
                 vala
   TEST_DEPENDENCIES: gcovr
                      glibc-all-langpacks
+                     patchutils
                      python3-dbusmock
                      python3-gobject-base
+                     uncrustify
                      valgrind
 
 stages:

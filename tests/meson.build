@@ -1,3 +1,5 @@
+test('check-format', find_program('check-format.sh'))
+
 libmocklibc = subproject('mocklibc').get_variable('libmocklibc')
 
 envs = environment()
