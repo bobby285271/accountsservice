@@ -37,6 +37,8 @@ build-fedora:
     when: always
     paths:
       - _build/meson-logs
+  only:
+    - merge_requests
 
 test-fedora:
   extends:
@@ -53,6 +55,8 @@ test-fedora:
     when: always
     paths:
       - _build/meson-logs
+  only:
+    - merge_requests
 
 #build-ubuntu:
 #  image: ubuntu:rolling
