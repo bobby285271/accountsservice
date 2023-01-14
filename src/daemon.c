@@ -55,12 +55,20 @@
 #define PATH_PASSWD "passwd"
 #define PATH_SHADOW "shadow"
 #define PATH_GROUP "/etc/group"
+#define PATH_DM     "/etc/systemd/system/display-manager.service"
 
 enum
 {
         PROP_0,
         PROP_DAEMON_VERSION
 };
+
+typedef enum
+{
+        DISPLAY_MANAGER_TYPE_NONE = -1,
+        DISPLAY_MANAGER_TYPE_GDM,
+        DISPLAY_MANAGER_TYPE_LIGHTDM
+} DisplayManagerType;
 
 typedef struct
 {
@@ -75,7 +83,7 @@ typedef struct
         GFileMonitor    *passwd_monitor;
         GFileMonitor    *shadow_monitor;
         GFileMonitor    *group_monitor;
-        GFileMonitor    *gdm_monitor;
+        GFileMonitor    *dm_monitor;
         GFileMonitor    *wtmp_monitor;
 
         GQueue          *pending_list_cached_users;
@@ -160,6 +168,29 @@ error_get_type (void)
 #ifndef MAX_LOCAL_USERS
 #define MAX_LOCAL_USERS 50
 #endif
+
+/* Get current system Display Manager type */
+static DisplayManagerType
+get_current_system_dm_type (void)
+{
+        g_autofree gchar *link_target = NULL;
+        g_autofree gchar *basename = NULL;
+        GFile *file;
+
+        link_target = g_file_read_link (PATH_DM, NULL);
+        if (link_target) {
+                file = g_file_new_for_path (link_target);
+                basename = g_file_get_basename (file);
+                g_object_unref (file);
+
+                if (g_strcmp0 (basename, "lightdm.service") == 0)
+                        return DISPLAY_MANAGER_TYPE_LIGHTDM;
+                else if (g_strcmp0 (basename, "gdm.service") == 0)
+                        return DISPLAY_MANAGER_TYPE_GDM;
+        }
+
+        return DISPLAY_MANAGER_TYPE_NONE;
+}
 
 static void
 remove_cache_files (const gchar *user_name)
@@ -606,7 +637,7 @@ reload_autologin_timeout (Daemon *daemon)
         priv->autologin_id = 0;
 
         if (!load_autologin (daemon, &name, &enabled, &error)) {
-                g_debug ("failed to load gdms custom.conf: %s", error->message);
+                g_debug ("failed to load autologin conf file: %s", error->message);
                 return FALSE;
         }
 
@@ -715,11 +746,11 @@ on_users_monitor_changed (GFileMonitor     *monitor,
 }
 
 static void
-on_gdm_monitor_changed (GFileMonitor     *monitor,
-                        GFile            *file,
-                        GFile            *other_file,
-                        GFileMonitorEvent event_type,
-                        Daemon           *daemon)
+on_dm_monitor_changed (GFileMonitor     *monitor,
+                       GFile            *file,
+                       GFile            *other_file,
+                       GFileMonitorEvent event_type,
+                       Daemon           *daemon)
 {
         if (event_type != G_FILE_MONITOR_EVENT_CHANGED &&
             event_type != G_FILE_MONITOR_EVENT_CREATED) {
@@ -772,6 +803,8 @@ daemon_init (Daemon *daemon)
         DaemonPrivate *priv = daemon_get_instance_private (daemon);
         g_autofree char *shadow_path = NULL;
         g_autofree char *passwd_path = NULL;
+        g_autofree char *dm_path = NULL;
+        DisplayManagerType dm_type;
 
         priv->extension_ifaces = daemon_read_extension_ifaces ();
 
@@ -795,9 +828,16 @@ daemon_init (Daemon *daemon)
                                             wtmp_helper_get_path_for_monitor (),
                                             on_users_monitor_changed);
 
-        priv->gdm_monitor = setup_monitor (daemon,
-                                           PATH_GDM_CUSTOM,
-                                           on_gdm_monitor_changed);
+        dm_type = get_current_system_dm_type ();
+        if (dm_type == DISPLAY_MANAGER_TYPE_LIGHTDM)
+                dm_path = g_strdup (PATH_LIGHTDM_CONF);
+        else if (dm_type == DISPLAY_MANAGER_TYPE_GDM)
+                dm_path = g_strdup (PATH_GDM_CUSTOM);
+
+        priv->dm_monitor = setup_monitor (daemon,
+                                          dm_path,
+                                          on_dm_monitor_changed);
+
         reload_users_timeout (daemon);
         queue_reload_autologin (daemon);
 }
@@ -1643,11 +1683,11 @@ daemon_local_check_auth (Daemon                *daemon,
         g_object_unref (subject);
 }
 
-gboolean
-load_autologin (Daemon   *daemon,
-                gchar   **name,
-                gboolean *enabled,
-                GError  **error)
+static gboolean
+load_autologin_gdm (Daemon   *daemon,
+                    gchar   **name,
+                    gboolean *enabled,
+                    GError  **error)
 {
         g_autoptr (GKeyFile) keyfile = NULL;
         GError *local_error = NULL;
@@ -1682,10 +1722,57 @@ load_autologin (Daemon   *daemon,
 }
 
 static gboolean
-save_autologin (Daemon      *daemon,
-                const gchar *name,
-                gboolean     enabled,
-                GError     **error)
+load_autologin_lightdm (Daemon   *daemon,
+                        gchar   **name,
+                        gboolean *enabled,
+                        GError  **error)
+{
+        g_autoptr (GKeyFile) keyfile = NULL;
+        GError *local_error = NULL;
+
+        keyfile = g_key_file_new ();
+        if (!g_key_file_load_from_file (keyfile,
+                                        PATH_LIGHTDM_CONF,
+                                        G_KEY_FILE_KEEP_COMMENTS,
+                                        error)) {
+                return FALSE;
+        }
+
+        *name = g_key_file_get_string (keyfile, "SeatDefaults", "autologin-user", &local_error);
+        if (local_error) {
+                g_propagate_error (error, local_error);
+                return FALSE;
+        }
+
+        *enabled = ((*name) && (*name)[0] != 0);
+
+        return TRUE;
+}
+
+gboolean
+load_autologin (Daemon   *daemon,
+                gchar   **name,
+                gboolean *enabled,
+                GError  **error)
+{
+        DisplayManagerType dm_type;
+
+        dm_type = get_current_system_dm_type ();
+        if (dm_type == DISPLAY_MANAGER_TYPE_LIGHTDM)
+                return load_autologin_lightdm (daemon, name, enabled, error);
+        else if (dm_type == DISPLAY_MANAGER_TYPE_GDM)
+                return load_autologin_gdm (daemon, name, enabled, error);
+
+        g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED, _ ("Unsupported Display Manager"));
+
+        return FALSE;
+}
+
+static gboolean
+save_autologin_gdm (Daemon      *daemon,
+                    const gchar *name,
+                    gboolean     enabled,
+                    GError     **error)
 {
         g_autoptr (GKeyFile) keyfile = NULL;
         g_autofree gchar *data = NULL;
@@ -1711,6 +1798,54 @@ save_autologin (Daemon      *daemon,
         result = g_file_set_contents (PATH_GDM_CUSTOM, data, -1, error);
 
         return result;
+}
+
+static gboolean
+save_autologin_lightdm (Daemon      *daemon,
+                        const gchar *name,
+                        gboolean     enabled,
+                        GError     **error)
+{
+        g_autoptr (GKeyFile) keyfile = NULL;
+        g_autofree gchar *data = NULL;
+        gboolean result;
+        g_autoptr (GError) local_error = NULL;
+
+        keyfile = g_key_file_new ();
+        if (!g_key_file_load_from_file (keyfile,
+                                        PATH_LIGHTDM_CONF,
+                                        G_KEY_FILE_KEEP_COMMENTS,
+                                        &local_error)) {
+                /* It's OK for lightdm.conf to not exist, we will make it */
+                if (!g_error_matches (local_error, G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
+                        g_propagate_error (error, g_steal_pointer (&local_error));
+                        return FALSE;
+                }
+        }
+
+        g_key_file_set_string (keyfile, "SeatDefaults", "autologin-user", enabled ? name : "");
+
+        data = g_key_file_to_data (keyfile, NULL, NULL);
+        result = g_file_set_contents (PATH_LIGHTDM_CONF, data, -1, error);
+
+        return result;
+}
+
+static gboolean
+save_autologin (Daemon      *daemon,
+                const gchar *name,
+                gboolean     enabled,
+                GError     **error)
+{
+        DisplayManagerType dm_type;
+
+        dm_type = get_current_system_dm_type ();
+        if (dm_type == DISPLAY_MANAGER_TYPE_LIGHTDM)
+                return save_autologin_lightdm (daemon, name, enabled, error);
+        else if (dm_type == DISPLAY_MANAGER_TYPE_GDM)
+                return save_autologin_gdm (daemon, name, enabled, error);
+
+        return FALSE;
 }
 
 gboolean

@@ -207,6 +207,10 @@ config_h.set('MINIMUM_UID', get_option('minimum_uid'))
 gdm_conf_file = get_option('gdmconffile')
 config_h.set_quoted('PATH_GDM_CUSTOM', gdm_conf_file)
 
+# LightDM
+lightdm_conf_file = get_option('lightdmconffile')
+config_h.set_quoted('PATH_LIGHTDM_CONF', lightdm_conf_file)
+
 if get_option('elogind')
   logind_dep = dependency('libelogind', version: '>= 229.4')
 else
@@ -242,5 +246,6 @@ output = '\n' + meson.project_name() + ' was configured with the following optio
 output += '** DocBook documentation build: ' + enable_docbook.to_string() + '\n'
 output += '** Administrator group: ' + admin_group + '\n'
 output += '** Extra administrator groups: ' + extra_admin_groups + '\n'
-output += '** GDM configuration: ' + gdm_conf_file
+output += '** GDM configuration: ' + gdm_conf_file + '\n'
+output += '** LightDM configuration: ' + lightdm_conf_file
 message(output)

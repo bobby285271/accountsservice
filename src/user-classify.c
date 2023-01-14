@@ -51,6 +51,7 @@ static const char *default_excludes[] = {
         "man",
         "at",
         "gdm",
+        "lightdm",
         "gnome-initial-setup",
         "git"
 };
