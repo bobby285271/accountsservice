@@ -50,7 +50,7 @@ test-fedora:
   script:
     - useradd -u 5555 -ms /bin/bash user
     - su user -c .ci/run-tests.sh
-    - cp -r /home/user/accountsservice/_build/ ./
+    - cp -r "/home/user/${CI_PROJECT_NAME}/_build/" ./
     - .ci/fail_skipped_tests.py _build/meson-logs/testlog.junit.xml
     - cat _build/meson-logs/coverage.txt
   artifacts:

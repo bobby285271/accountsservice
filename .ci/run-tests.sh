@@ -5,7 +5,7 @@ set -e
 SRCDIR=`pwd`
 cd /home/user
 cp -r $SRCDIR ./
-cd accountsservice
+cd "${CI_PROJECT_NAME}"
 meson setup --localstatedir /var -Db_coverage=true _build
 # FIXME until we can figure out how to depend on mocklibc being built for the tests
 meson compile -C _build
