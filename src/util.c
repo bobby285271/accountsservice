@@ -156,7 +156,7 @@ sys_log (GDBusMethodInvocation *context,
         syslog (LOG_NOTICE, "%s", msg);
 }
 
-static gboolean
+gboolean
 compat_check_exit_status (int      estatus,
                           GError **error)
 {

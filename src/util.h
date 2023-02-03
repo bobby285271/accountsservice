@@ -49,3 +49,6 @@ void free_dirs (void);
 const char *get_userdir (void);
 const char *get_sysconfdir (void);
 const char *get_icondir (void);
+
+gboolean compat_check_exit_status (int      estatus,
+                                   GError **error);

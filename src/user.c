@@ -2464,6 +2464,13 @@ user_set_password_mode (AccountsUser          *auser,
 }
 
 static void
+free_passwords (gchar **strings)
+{
+        memset (strings[0], 0, strlen (strings[0]));
+        g_strfreev (strings);
+}
+
+static void
 user_change_password_authorized_cb (Daemon                *daemon,
                                     User                  *user,
                                     GDBusMethodInvocation *context,
@@ -2473,7 +2480,8 @@ user_change_password_authorized_cb (Daemon                *daemon,
         gchar **strings = data;
 
         g_autoptr (GError) error = NULL;
-        const gchar *argv[6];
+        g_autoptr (GSubprocess) process = NULL;
+        const char *argv[] = { "/usr/sbin/chpasswd", "-e", NULL };
 
         sys_log (context,
                  "set password and hint of user '%s' (%d)",
@@ -2482,14 +2490,21 @@ user_change_password_authorized_cb (Daemon                *daemon,
 
         g_object_freeze_notify (G_OBJECT (user));
 
-        argv[0] = "/usr/sbin/usermod";
-        argv[1] = "-p";
-        argv[2] = strings[0];
-        argv[3] = "--";
-        argv[4] = accounts_user_get_user_name (ACCOUNTS_USER (user));
-        argv[5] = NULL;
+        process = g_subprocess_newv (argv,
+                                     G_SUBPROCESS_FLAGS_STDIN_PIPE,
+                                     &error);
 
-        if (!spawn_sync (argv, &error)) {
+        if (process == NULL) {
+                throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
+                return;
+        }
+
+        if (!g_subprocess_communicate_utf8 (process, strings[0], NULL, NULL, NULL, &error)) {
+                throw_error (context, ERROR_FAILED, "writing input to '%s' failed: %s", argv[0], error->message);
+                return;
+        }
+
+        if (!compat_check_exit_status (g_subprocess_get_status (process), &error)) {
                 throw_error (context, ERROR_FAILED, "running '%s' failed: %s", argv[0], error->message);
                 return;
         }
@@ -2503,13 +2518,6 @@ user_change_password_authorized_cb (Daemon                *daemon,
         g_object_thaw_notify (G_OBJECT (user));
 
         accounts_user_complete_set_password (ACCOUNTS_USER (user), context);
-}
-
-static void
-free_passwords (gchar **strings)
-{
-        memset (strings[0], 0, strlen (strings[0]));
-        g_strfreev (strings);
 }
 
 static gboolean
@@ -2529,7 +2537,9 @@ user_set_password (AccountsUser          *auser,
         }
 
         data = g_new (gchar *, 3);
-        data[0] = g_strdup (password);
+        data[0] = g_strdup_printf ("%s:%s\n",
+                                   accounts_user_get_user_name (ACCOUNTS_USER (user)),
+                                   password);
         data[1] = g_strdup (hint);
         data[2] = NULL;
 
