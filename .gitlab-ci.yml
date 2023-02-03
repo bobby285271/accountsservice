@@ -11,6 +11,7 @@ variables:
                 ninja-build
                 polkit-devel
                 redhat-rpm-config
+                systemd
                 systemd-devel
                 vala
   TEST_DEPENDENCIES: gcovr
