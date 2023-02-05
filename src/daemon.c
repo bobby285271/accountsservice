@@ -190,7 +190,10 @@ entry_generator_fgetpwent (Daemon       *daemon,
         struct
         {
                 FILE       *fp;
-                GHashTable *users;
+                /* Local user accounts (currently defined as existing in
+                 * /etc/shadow)
+                 * username -> copy of shadow_entry_buffers */
+                GHashTable *local_users;
         } *generator_state;
 
         /* First iteration */
@@ -244,7 +247,7 @@ entry_generator_fgetpwent (Daemon       *daemon,
 
                 generator_state = g_malloc0 (sizeof(*generator_state));
                 generator_state->fp = fp;
-                generator_state->users = shadow_users;
+                generator_state->local_users = shadow_users;
 
                 *state = generator_state;
         }
@@ -255,7 +258,7 @@ entry_generator_fgetpwent (Daemon       *daemon,
         if (g_hash_table_size (users) < MAX_LOCAL_USERS) {
                 pwent = fgetpwent (generator_state->fp);
                 if (pwent != NULL) {
-                        shadow_entry_buffers = g_hash_table_lookup (generator_state->users, pwent->pw_name);
+                        shadow_entry_buffers = g_hash_table_lookup (generator_state->local_users, pwent->pw_name);
 
                         if (shadow_entry_buffers != NULL) {
                                 *spent = &shadow_entry_buffers->spbuf;
@@ -274,7 +277,7 @@ entry_generator_fgetpwent (Daemon       *daemon,
 
         /* Last iteration */
         fclose (generator_state->fp);
-        g_hash_table_unref (generator_state->users);
+        g_hash_table_unref (generator_state->local_users);
         g_free (generator_state);
         *state = NULL;
 
