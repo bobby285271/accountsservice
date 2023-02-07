@@ -1120,6 +1120,11 @@ user_set_saved (User    *user,
         accounts_user_set_saved (ACCOUNTS_USER (user), saved);
 }
 
+static void throw_error (GDBusMethodInvocation *context,
+                         gint                   error_code,
+                         const gchar           *format,
+                         ...) G_GNUC_PRINTF (3, 4);
+
 static void
 throw_error (GDBusMethodInvocation *context,
              gint                   error_code,

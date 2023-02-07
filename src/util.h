@@ -25,7 +25,7 @@
 
 void sys_log (GDBusMethodInvocation *context,
               const gchar           *format,
-              ...);
+              ...) G_GNUC_PRINTF (2, 3);
 
 gboolean get_caller_uid (GDBusMethodInvocation *context,
                          gint                  *uid);

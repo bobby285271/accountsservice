@@ -876,6 +876,11 @@ daemon_new (void)
         return g_steal_pointer (&daemon);
 }
 
+static void throw_error (GDBusMethodInvocation *context,
+                         gint                   error_code,
+                         const gchar           *format,
+                         ...) G_GNUC_PRINTF (3, 4);
+
 static void
 throw_error (GDBusMethodInvocation *context,
              gint                   error_code,
