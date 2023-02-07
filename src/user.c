@@ -1152,7 +1152,7 @@ user_change_real_name_authorized_cb (Daemon                *daemon,
 
         if (g_strcmp0 (accounts_user_get_real_name (ACCOUNTS_USER (user)), name) != 0) {
                 sys_log (context,
-                         "change real name of user '%s' (%d) to '%s'",
+                         "change real name of user '%s' (%" G_GUINT64_FORMAT ") to '%s'",
                          accounts_user_get_user_name (ACCOUNTS_USER (user)),
                          accounts_user_get_uid (ACCOUNTS_USER (user)),
                          name);
@@ -1238,7 +1238,7 @@ user_change_user_name_authorized_cb (Daemon                *daemon,
         if (g_strcmp0 (accounts_user_get_user_name (ACCOUNTS_USER (user)), name) != 0) {
                 old_name = g_strdup (accounts_user_get_user_name (ACCOUNTS_USER (user)));
                 sys_log (context,
-                         "change name of user '%s' (%d) to '%s'",
+                         "change name of user '%s' (%" G_GUINT64_FORMAT ") to '%s'",
                          old_name,
                          accounts_user_get_uid (ACCOUNTS_USER (user)),
                          name);
@@ -1689,7 +1689,7 @@ user_set_password_expiration_policy_authorized_cb (Daemon                *daemon
         const gchar *argv[11];
 
         sys_log (context,
-                 "set password expiration policy of user '%s' (%d)",
+                 "set password expiration policy of user '%s' (%" G_GUINT64_FORMAT ")",
                  accounts_user_get_user_name (ACCOUNTS_USER (user)),
                  accounts_user_get_uid (ACCOUNTS_USER (user)));
 
@@ -1770,7 +1770,7 @@ user_set_user_expiration_policy_authorized_cb (Daemon                *daemon,
         const gchar *argv[5];
 
         sys_log (context,
-                 "set user expiration policy of user '%s' (%d)",
+                 "set user expiration policy of user '%s' (%" G_GUINT64_FORMAT ")",
                  accounts_user_get_user_name (ACCOUNTS_USER (user)),
                  accounts_user_get_uid (ACCOUNTS_USER (user)));
 
@@ -1890,7 +1890,7 @@ user_change_home_dir_authorized_cb (Daemon                *daemon,
 
         if (g_strcmp0 (accounts_user_get_home_directory (ACCOUNTS_USER (user)), home_dir) != 0) {
                 sys_log (context,
-                         "change home directory of user '%s' (%d) to '%s'",
+                         "change home directory of user '%s' (%" G_GUINT64_FORMAT ") to '%s'",
                          accounts_user_get_user_name (ACCOUNTS_USER (user)),
                          accounts_user_get_uid (ACCOUNTS_USER (user)),
                          home_dir);
@@ -1948,7 +1948,7 @@ user_change_shell_authorized_cb (Daemon                *daemon,
 
         if (g_strcmp0 (accounts_user_get_shell (ACCOUNTS_USER (user)), shell) != 0) {
                 sys_log (context,
-                         "change shell of user '%s' (%d) to '%s'",
+                         "change shell of user '%s' (%" G_GUINT64_FORMAT ") to '%s'",
                          accounts_user_get_user_name (ACCOUNTS_USER (user)),
                          accounts_user_get_uid (ACCOUNTS_USER (user)),
                          shell);
@@ -2173,7 +2173,7 @@ user_change_locked_authorized_cb (Daemon                *daemon,
 
         if (accounts_user_get_locked (ACCOUNTS_USER (user)) != locked) {
                 sys_log (context,
-                         "%s account of user '%s' (%d)",
+                         "%s account of user '%s' (%" G_GUINT64_FORMAT ")",
                          locked ? "locking" : "unlocking",
                          accounts_user_get_user_name (ACCOUNTS_USER (user)),
                          accounts_user_get_uid (ACCOUNTS_USER (user)));
@@ -2261,7 +2261,7 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
 
         if (((AccountType) accounts_user_get_account_type (ACCOUNTS_USER (user))) != account_type) {
                 sys_log (context,
-                         "change account type of user '%s' (%d) to %d",
+                         "change account type of user '%s' (%" G_GUINT64_FORMAT ") to %d",
                          accounts_user_get_user_name (ACCOUNTS_USER (user)),
                          accounts_user_get_uid (ACCOUNTS_USER (user)),
                          account_type);
@@ -2363,7 +2363,7 @@ user_change_password_mode_authorized_cb (Daemon                *daemon,
 
         if (((PasswordMode) accounts_user_get_password_mode (ACCOUNTS_USER (user))) != mode) {
                 sys_log (context,
-                         "change password mode of user '%s' (%d) to %d",
+                         "change password mode of user '%s' (%" G_GUINT64_FORMAT ") to %d",
                          accounts_user_get_user_name (ACCOUNTS_USER (user)),
                          accounts_user_get_uid (ACCOUNTS_USER (user)),
                          mode);
@@ -2484,7 +2484,7 @@ user_change_password_authorized_cb (Daemon                *daemon,
         const char *argv[] = { "/usr/sbin/chpasswd", "-e", NULL };
 
         sys_log (context,
-                 "set password and hint of user '%s' (%d)",
+                 "set password and hint of user '%s' (%" G_GUINT64_FORMAT ")",
                  accounts_user_get_user_name (ACCOUNTS_USER (user)),
                  accounts_user_get_uid (ACCOUNTS_USER (user)));
 
@@ -2570,7 +2570,7 @@ user_change_password_hint_authorized_cb (Daemon                *daemon,
         gchar *hint = data;
 
         sys_log (context,
-                 "set password hint of user '%s' (%d)'",
+                 "set password hint of user '%s' (%" G_GUINT64_FORMAT ")'",
                  accounts_user_get_user_name (ACCOUNTS_USER (user)),
                  accounts_user_get_uid (ACCOUNTS_USER (user)));
 
@@ -2624,7 +2624,7 @@ user_change_automatic_login_authorized_cb (Daemon                *daemon,
         g_autoptr (GError) error = NULL;
 
         sys_log (context,
-                 "%s automatic login for user '%s' (%d)",
+                 "%s automatic login for user '%s' (%" G_GUINT64_FORMAT ")",
                  enabled ? "enable" : "disable",
                  accounts_user_get_user_name (ACCOUNTS_USER (user)),
                  accounts_user_get_uid (ACCOUNTS_USER (user)));
