@@ -503,7 +503,6 @@ reload_users (Daemon *daemon)
 
         /* Load the local users into our hash tables */
         load_entries (daemon, users, FALSE, entry_generator_fgetpwent, &local);
-        g_assert (local != NULL);
 
         /* Now add/update users from other sources, possibly non-local */
         load_entries (daemon, users, TRUE, entry_generator_cachedir, NULL);
@@ -519,9 +518,9 @@ reload_users (Daemon *daemon)
                 User *user = value;
                 if (!user_get_system_account (user))
                         number_of_normal_users++;
-                user_update_local_account_property (user, g_hash_table_lookup (local, name) != NULL);
+                user_update_local_account_property (user, local != NULL && g_hash_table_lookup (local, name) != NULL);
         }
-        g_hash_table_destroy (local);
+        g_clear_pointer (&local, g_hash_table_destroy);
 
         had_no_users = accounts_accounts_get_has_no_users (accounts);
         has_no_users = number_of_normal_users == 0;
