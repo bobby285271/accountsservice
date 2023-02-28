@@ -79,6 +79,7 @@ endforeach
 
 if cc.has_header_symbol('utmpx.h', 'WTMPX_FILENAME', prefix: '#define _GNU_SOURCE')
   code = '''#define _GNU_SOURCE
+  #include <stdio.h>
   #include <utmpx.h>
   int main (int argc, char **argv) {
     printf ("%s\n", WTMPX_FILENAME);
@@ -91,6 +92,7 @@ if cc.has_header_symbol('utmpx.h', 'WTMPX_FILENAME', prefix: '#define _GNU_SOURC
   config_h.set('PATH_WTMP', 'WTMPX_FILENAME')
 elif cc.has_header_symbol('paths.h', '_PATH_WTMPX')
   code = '''#include <paths.h>
+  #include <stdio.h>
   int main (int argc, char **argv) {
     printf ("%s\n", _PATH_WTMPX);
     return 0;
