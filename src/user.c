@@ -73,6 +73,7 @@ struct User
         gboolean             account_expiration_policy_known;
         gboolean             cached;
         gboolean             template_loaded;
+        gboolean             local_account_overridden;
 
         guint               *extension_ids;
         guint                n_extension_ids;
@@ -585,6 +586,15 @@ user_update_from_keyfile (User     *user,
                 g_clear_pointer (&s, g_free);
         }
 
+        if (g_key_file_has_key (keyfile, "User", "LocalAccount", NULL)) {
+                gboolean local_account;
+
+                user->local_account_overridden = TRUE;
+
+                local_account = g_key_file_get_boolean (keyfile, "User", "LocalAccount", NULL);
+                accounts_user_set_local_account (ACCOUNTS_USER (user), local_account);
+        }
+
         if (g_key_file_has_key (keyfile, "User", "SystemAccount", NULL)) {
                 gboolean system_account;
 
@@ -668,6 +678,9 @@ user_save_to_keyfile (User     *user,
 
         if (accounts_user_get_icon_file (ACCOUNTS_USER (user)))
                 g_key_file_set_string (keyfile, "User", "Icon", accounts_user_get_icon_file (ACCOUNTS_USER (user)));
+
+        if (user->local_account_overridden)
+                g_key_file_set_boolean (keyfile, "User", "LocalAccount", accounts_user_get_local_account (ACCOUNTS_USER (user)));
 
         g_key_file_set_boolean (keyfile, "User", "SystemAccount", accounts_user_get_system_account (ACCOUNTS_USER (user)));
 
@@ -1074,6 +1087,12 @@ gboolean
 user_get_system_account (User *user)
 {
         return accounts_user_get_system_account (ACCOUNTS_USER (user));
+}
+
+gboolean
+user_get_local_account_overridden (User *user)
+{
+        return user->local_account_overridden;
 }
 
 gboolean

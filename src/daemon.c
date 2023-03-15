@@ -388,6 +388,16 @@ entry_generator_cachedir (Daemon       *daemon,
                 User *user = value;
 
                 user_update_from_cache (user);
+
+                if (user_get_local_account_overridden (user)) {
+                        const char *username = user_get_user_name (user);
+
+                        if (user_get_local_account (user)) {
+                                g_hash_table_add (local_users, g_strdup (username));
+                        } else {
+                                g_hash_table_remove (local_users, username);
+                        }
+                }
         }
 
         *state = NULL;
