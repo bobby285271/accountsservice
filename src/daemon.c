@@ -97,9 +97,9 @@ typedef struct
 
 typedef struct passwd * (* EntryGeneratorFunc) (Daemon *,
                                                 GHashTable *,
+                                                GHashTable *,
                                                 gpointer *,
-                                                struct spwd **shadow_entry,
-                                                GHashTable  **local_users);
+                                                struct spwd **shadow_entry);
 
 typedef struct
 {
@@ -208,9 +208,9 @@ remove_cache_files (const gchar *user_name)
 static struct passwd *
 entry_generator_fgetpwent (Daemon       *daemon,
                            GHashTable   *users,
+                           GHashTable   *local_users,
                            gpointer     *state,
-                           struct spwd **spent,
-                           GHashTable  **local_users)
+                           struct spwd **spent)
 {
         struct passwd *pwent;
 
@@ -227,10 +227,8 @@ entry_generator_fgetpwent (Daemon       *daemon,
                  * /etc/shadow, so sites that rsync NIS/LDAP users into
                  * /etc/passwd don't get them all treated as local)
                  * username -> copy of shadow_entry_buffers */
-                GHashTable *local_users;
+                GHashTable *shadow_users;
         } *generator_state;
-
-        g_assert (local_users == NULL || *local_users == NULL);
 
         /* First iteration */
         if (*state == NULL) {
@@ -257,6 +255,7 @@ entry_generator_fgetpwent (Daemon       *daemon,
                         ret = fgetspent_r (fp, &shadow_entry_buffers->spbuf, shadow_entry_buffers->buf, sizeof(shadow_entry_buffers->buf), &shadow_entry);
                         if (ret == 0) {
                                 g_hash_table_insert (shadow_users, g_strdup (shadow_entry->sp_namp), shadow_entry_buffers);
+                                g_hash_table_add (local_users, g_strdup (shadow_entry->sp_namp));
                         } else {
                                 g_free (shadow_entry_buffers);
 
@@ -283,7 +282,7 @@ entry_generator_fgetpwent (Daemon       *daemon,
 
                 generator_state = g_malloc0 (sizeof(*generator_state));
                 generator_state->fp = fp;
-                generator_state->local_users = shadow_users;
+                generator_state->shadow_users = shadow_users;
 
                 *state = generator_state;
         }
@@ -294,7 +293,7 @@ entry_generator_fgetpwent (Daemon       *daemon,
         if (g_hash_table_size (users) < MAX_LOCAL_USERS) {
                 pwent = fgetpwent (generator_state->fp);
                 if (pwent != NULL) {
-                        shadow_entry_buffers = g_hash_table_lookup (generator_state->local_users, pwent->pw_name);
+                        shadow_entry_buffers = g_hash_table_lookup (generator_state->shadow_users, pwent->pw_name);
 
                         if (shadow_entry_buffers != NULL) {
                                 *spent = &shadow_entry_buffers->spbuf;
@@ -304,20 +303,15 @@ entry_generator_fgetpwent (Daemon       *daemon,
                         if (!user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell)) {
                                 g_debug ("skipping user: %s", pwent->pw_name);
 
-                                return entry_generator_fgetpwent (daemon, users, state, spent, local_users);
+                                return entry_generator_fgetpwent (daemon, users, local_users, state, spent);
                         }
 
                         return pwent;
                 }
         }
 
-        /* Last iteration */
-        if (local_users != NULL) {
-                *local_users = g_hash_table_ref (generator_state->local_users);
-        }
-
         fclose (generator_state->fp);
-        g_hash_table_unref (generator_state->local_users);
+        g_hash_table_unref (generator_state->shadow_users);
         g_free (generator_state);
         *state = NULL;
 
@@ -327,9 +321,9 @@ entry_generator_fgetpwent (Daemon       *daemon,
 static struct passwd *
 entry_generator_cachedir (Daemon       *daemon,
                           GHashTable   *users,
+                          GHashTable   *local_users,
                           gpointer     *state,
-                          struct spwd **shadow_entry,
-                          GHashTable  **local_users)
+                          struct spwd **shadow_entry)
 {
         struct passwd *pwent;
 
@@ -403,9 +397,9 @@ entry_generator_cachedir (Daemon       *daemon,
 static struct passwd *
 entry_generator_requested_users (Daemon       *daemon,
                                  GHashTable   *users,
+                                 GHashTable   *local_users,
                                  gpointer     *state,
-                                 struct spwd **shadow_entry,
-                                 GHashTable  **local_users)
+                                 struct spwd **shadow_entry)
 {
         DaemonPrivate *priv = daemon_get_instance_private (daemon);
         struct passwd *pwent;
@@ -450,9 +444,9 @@ entry_generator_requested_users (Daemon       *daemon,
 static void
 load_entries (Daemon            *daemon,
               GHashTable        *users,
+              GHashTable        *local_users,
               gboolean           explicitly_requested,
-              EntryGeneratorFunc entry_generator,
-              GHashTable       **local_users)
+              EntryGeneratorFunc entry_generator)
 {
         DaemonPrivate *priv = daemon_get_instance_private (daemon);
         gpointer generator_state = NULL;
@@ -461,11 +455,10 @@ load_entries (Daemon            *daemon,
         User *user = NULL;
 
         g_assert (entry_generator != NULL);
-        g_assert (local_users == NULL || *local_users == NULL);
 
         for (;;) {
                 spent = NULL;
-                pwent = entry_generator (daemon, users, &generator_state, &spent, local_users);
+                pwent = entry_generator (daemon, users, local_users, &generator_state, &spent);
                 if (pwent == NULL)
                         break;
 
@@ -510,6 +503,15 @@ create_users_hash_table (void)
                                       g_object_unref);
 }
 
+static GHashTable *
+create_local_users_hash_table (void)
+{
+        return g_hash_table_new_full (g_str_hash,
+                                      g_str_equal,
+                                      g_free,
+                                      NULL);
+}
+
 static void
 reload_users (Daemon *daemon)
 {
@@ -517,14 +519,17 @@ reload_users (Daemon *daemon)
         AccountsAccounts *accounts = ACCOUNTS_ACCOUNTS (daemon);
         gboolean had_no_users, has_no_users, had_multiple_users, has_multiple_users;
         GHashTable *users;
+        GHashTable *local_users = NULL;
         GHashTable *old_users;
-        GHashTable *local = NULL;
         GHashTableIter iter;
         gsize number_of_normal_users = 0;
         gpointer name, value;
 
         /* Track the users that we saw during our (re)load */
         users = create_users_hash_table ();
+
+        /* Track which users are local */
+        local_users = create_local_users_hash_table ();
 
         /*
          * NOTE: As we load data from all the sources, notifies are
@@ -533,13 +538,13 @@ reload_users (Daemon *daemon)
          */
 
         /* Load the local users into our hash tables */
-        load_entries (daemon, users, FALSE, entry_generator_fgetpwent, &local);
+        load_entries (daemon, users, local_users, FALSE, entry_generator_fgetpwent);
 
         /* Now add/update users from other sources, possibly non-local */
-        load_entries (daemon, users, TRUE, entry_generator_cachedir, NULL);
+        load_entries (daemon, users, local_users, TRUE, entry_generator_cachedir);
 
         /* and add users to hash table that were explicitly requested  */
-        load_entries (daemon, users, TRUE, entry_generator_requested_users, NULL);
+        load_entries (daemon, users, local_users, TRUE, entry_generator_requested_users);
 
         wtmp_helper_update_login_frequencies (users);
 
@@ -549,9 +554,9 @@ reload_users (Daemon *daemon)
                 User *user = value;
                 if (!user_get_system_account (user))
                         number_of_normal_users++;
-                user_update_local_account_property (user, local != NULL && g_hash_table_lookup (local, name) != NULL);
+                user_update_local_account_property (user, g_hash_table_contains (local_users, name));
         }
-        g_clear_pointer (&local, g_hash_table_destroy);
+        g_clear_pointer (&local_users, g_hash_table_destroy);
 
         had_no_users = accounts_accounts_get_has_no_users (accounts);
         has_no_users = number_of_normal_users == 0;
