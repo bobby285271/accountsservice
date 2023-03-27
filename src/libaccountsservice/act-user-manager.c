@@ -145,6 +145,7 @@ typedef struct
         ActUserManagerGetUserState         state;
         ActUser                           *user;
         ActUserManagerFetchUserRequestType type;
+        GCancellable                      *cancellable;
         union
         {
                 char *username;
@@ -1189,6 +1190,10 @@ on_find_user_by_name_finished (GObject      *object,
         char *user;
 
         if (!accounts_accounts_call_find_user_by_name_finish (proxy, &user, result, &error)) {
+                if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+                        return;
+                }
+
                 if (error != NULL) {
                         g_debug ("ActUserManager: Failed to find %s: %s",
                                  request->description, error->message);
@@ -1220,6 +1225,10 @@ on_find_user_by_id_finished (GObject      *object,
         char *user;
 
         if (!accounts_accounts_call_find_user_by_id_finish (proxy, &user, result, &error)) {
+                if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+                        return;
+                }
+
                 if (error != NULL) {
                         g_debug ("ActUserManager: Failed to find user %lu: %s",
                                  (gulong) request->uid, error->message);
@@ -1256,7 +1265,7 @@ find_user_in_accounts_service (ActUserManager                 *manager,
                                                           request->username,
                                                           G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
                                                           -1,
-                                                          NULL,
+                                                          request->cancellable,
                                                           on_find_user_by_name_finished,
                                                           request);
                 break;
@@ -1265,7 +1274,7 @@ find_user_in_accounts_service (ActUserManager                 *manager,
                                                         request->uid,
                                                         G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
                                                         -1,
-                                                        NULL,
+                                                        request->cancellable,
                                                         on_find_user_by_id_finished,
                                                         request);
                 break;
@@ -1736,6 +1745,10 @@ free_fetch_user_request (ActUserManagerFetchUserRequest *request)
 
         g_free (request->object_path);
         g_free (request->description);
+
+        g_cancellable_cancel (request->cancellable);
+        g_object_unref (request->cancellable);
+
         g_debug ("ActUserManager: unrefing manager owned by fetch user request");
         g_object_unref (manager);
 
@@ -1755,6 +1768,8 @@ give_up (ActUserManager                 *manager,
 
         if (request->user)
                 _act_user_update_as_nonexistent (request->user);
+
+        g_cancellable_cancel (request->cancellable);
 }
 
 static void
@@ -1840,6 +1855,7 @@ fetch_user_with_username_from_accounts_service (ActUserManager *manager,
         request->user = user;
         request->state = ACT_USER_MANAGER_GET_USER_STATE_UNFETCHED + 1;
         request->description = g_strdup_printf ("user '%s'", request->username);
+        request->cancellable = g_cancellable_new ();
 
         priv->fetch_user_requests = g_slist_prepend (priv->fetch_user_requests,
                                                      request);
@@ -1863,6 +1879,7 @@ fetch_user_with_id_from_accounts_service (ActUserManager *manager,
         request->user = user;
         request->state = ACT_USER_MANAGER_GET_USER_STATE_UNFETCHED + 1;
         request->description = g_strdup_printf ("user with id %lu", (gulong) request->uid);
+        request->cancellable = g_cancellable_new ();
 
         priv->fetch_user_requests = g_slist_prepend (priv->fetch_user_requests,
                                                      request);
