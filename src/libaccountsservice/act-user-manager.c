@@ -230,6 +230,7 @@ static void     fetch_user_incrementally (ActUserManagerFetchUserRequest *reques
 static void     maybe_set_is_loaded (ActUserManager *manager);
 static void     update_user (ActUserManager *manager,
                              ActUser        *user);
+static void     free_fetch_user_request (ActUserManagerFetchUserRequest *request);
 static gpointer user_manager_object = NULL;
 
 G_DEFINE_TYPE_WITH_PRIVATE (ActUserManager, act_user_manager, G_TYPE_OBJECT)
@@ -705,6 +706,33 @@ set_has_multiple_users (ActUserManager *manager,
         if (priv->has_multiple_users != has_multiple_users) {
                 priv->has_multiple_users = has_multiple_users;
                 g_object_notify (G_OBJECT (manager), "has-multiple-users");
+        }
+}
+
+static void
+on_user_destroyed (ActUserManager *manager,
+                   GObject        *destroyed_user)
+{
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GSList *node;
+
+        node = priv->fetch_user_requests;
+        while (node != NULL) {
+                ActUserManagerFetchUserRequest *request;
+                GSList *next_node;
+
+                request = node->data;
+                next_node = node->next;
+
+                if ((gpointer) request->user == destroyed_user) {
+                        g_debug ("ActUserManager: User %s destroyed while still being fetched",
+                                 request->description);
+
+                        request->user = NULL;
+                        free_fetch_user_request (request);
+                }
+
+                node = next_node;
         }
 }
 
@@ -1736,7 +1764,10 @@ free_fetch_user_request (ActUserManagerFetchUserRequest *request)
         ActUserManager *manager = request->manager;
         ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
 
-        g_object_set_data (G_OBJECT (request->user), "fetch-user-request", NULL);
+        if (request->user != NULL) {
+                g_object_set_data (G_OBJECT (request->user), "fetch-user-request", NULL);
+                g_object_weak_unref (G_OBJECT (request->user), (GWeakNotify) on_user_destroyed, manager);
+        }
 
         priv->fetch_user_requests = g_slist_remove (priv->fetch_user_requests, request);
         if (request->type == ACT_USER_MANAGER_FETCH_USER_FROM_USERNAME_REQUEST) {
@@ -1748,6 +1779,7 @@ free_fetch_user_request (ActUserManagerFetchUserRequest *request)
 
         g_cancellable_cancel (request->cancellable);
         g_object_unref (request->cancellable);
+
 
         g_debug ("ActUserManager: unrefing manager owned by fetch user request");
         g_object_unref (manager);
@@ -1860,6 +1892,7 @@ fetch_user_with_username_from_accounts_service (ActUserManager *manager,
         priv->fetch_user_requests = g_slist_prepend (priv->fetch_user_requests,
                                                      request);
         g_object_set_data (G_OBJECT (user), "fetch-user-request", request);
+        g_object_weak_ref (G_OBJECT (user), (GWeakNotify) on_user_destroyed, manager);
         fetch_user_incrementally (request);
 }
 
@@ -1884,6 +1917,7 @@ fetch_user_with_id_from_accounts_service (ActUserManager *manager,
         priv->fetch_user_requests = g_slist_prepend (priv->fetch_user_requests,
                                                      request);
         g_object_set_data (G_OBJECT (user), "fetch-user-request", request);
+        g_object_weak_ref (G_OBJECT (user), (GWeakNotify) on_user_destroyed, manager);
         fetch_user_incrementally (request);
 }
 
