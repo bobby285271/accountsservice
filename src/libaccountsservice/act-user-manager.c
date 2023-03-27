@@ -1921,6 +1921,32 @@ fetch_user_with_id_from_accounts_service (ActUserManager *manager,
         fetch_user_incrementally (request);
 }
 
+static ActUser *
+check_fetch_user_requests_for_user (ActUserManager *manager,
+                                    const char     *username)
+{
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GSList *node;
+
+        node = priv->fetch_user_requests;
+        while (node != NULL) {
+                ActUserManagerFetchUserRequest *request;
+                GSList *next_node;
+
+                request = node->data;
+                next_node = node->next;
+
+                if (request->type == ACT_USER_MANAGER_FETCH_USER_FROM_USERNAME_REQUEST) {
+                        if (g_strcmp0 (request->username, username) == 0)
+                                return request->user;
+                }
+
+                node = next_node;
+        }
+
+        return NULL;
+}
+
 /**
  * act_user_manager_get_user:
  * @manager: the manager to query.
@@ -1944,6 +1970,14 @@ act_user_manager_get_user (ActUserManager *manager,
         g_return_val_if_fail (username != NULL && username[0] != '\0', NULL);
 
         user = lookup_user_by_name (manager, username);
+
+        if (user == NULL) {
+                user = check_fetch_user_requests_for_user (manager, username);
+
+                if (user != NULL) {
+                        g_debug ("ActUserManager: User with username '%s' fetched by username more than once before it loaded", username);
+                }
+        }
 
         /* if we don't have it loaded try to load it now */
         if (user == NULL) {
@@ -2004,6 +2038,32 @@ load_user (ActUserManager *manager,
         _act_user_update_from_object_path (user, object_path);
 }
 
+static ActUser *
+check_fetch_user_requests_for_user_with_id (ActUserManager *manager,
+                                            uid_t           id)
+{
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GSList *node;
+
+        node = priv->fetch_user_requests;
+        while (node != NULL) {
+                ActUserManagerFetchUserRequest *request;
+                GSList *next_node;
+
+                request = node->data;
+                next_node = node->next;
+
+                if (request->type == ACT_USER_MANAGER_FETCH_USER_FROM_ID_REQUEST) {
+                        if (request->uid == id)
+                                return request->user;
+                }
+
+                node = next_node;
+        }
+
+        return NULL;
+}
+
 /**
  * act_user_manager_get_user_by_id:
  * @manager: the manager to query.
@@ -2028,6 +2088,14 @@ act_user_manager_get_user_by_id (ActUserManager *manager,
 
         object_path = g_strdup_printf ("/org/freedesktop/Accounts/User%lu", (gulong) id);
         user = g_hash_table_lookup (priv->users_by_object_path, object_path);
+
+        if (user == NULL) {
+                user = check_fetch_user_requests_for_user_with_id (manager, id);
+
+                if (user != NULL) {
+                        g_debug ("ActUserManager: User with UID %d fetched more than once before it loaded", (int) id);
+                }
+        }
 
         if (user != NULL) {
                 return user;
