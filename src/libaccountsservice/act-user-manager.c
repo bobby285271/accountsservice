@@ -170,6 +170,7 @@ typedef struct
         GSList            *new_users;                 /* (element-type ActUser) (owned) */
         GSList            *new_users_inhibiting_load; /* (element-type ActUser) (unowned) */
         GSList            *dopplegangers;
+        GSList            *nonexistent_users;
         GSList            *fetch_user_requests;
 
         GSList            *exclude_usernames;
@@ -1791,6 +1792,8 @@ static void
 give_up (ActUserManager                 *manager,
          ActUserManagerFetchUserRequest *request)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
         if (request->type == ACT_USER_MANAGER_FETCH_USER_FROM_USERNAME_REQUEST)
                 g_debug ("ActUserManager: failed to load user %s", request->username);
         else
@@ -1798,8 +1801,10 @@ give_up (ActUserManager                 *manager,
 
         request->state = ACT_USER_MANAGER_GET_USER_STATE_UNFETCHED;
 
-        if (request->user)
+        if (request->user != NULL) {
+                priv->nonexistent_users = g_slist_prepend (priv->nonexistent_users, g_object_ref (request->user));
                 _act_user_update_as_nonexistent (request->user);
+        }
 
         g_cancellable_cancel (request->cancellable);
 }
@@ -2624,6 +2629,10 @@ act_user_manager_finalize (GObject *object)
         g_slist_foreach (priv->fetch_user_requests,
                          (GFunc) free_fetch_user_request, NULL);
         g_slist_free (priv->fetch_user_requests);
+
+        g_slist_foreach (priv->nonexistent_users,
+                         (GFunc) g_object_unref, NULL);
+        g_slist_free (priv->nonexistent_users);
 
         g_slist_foreach (priv->dopplegangers,
                          (GFunc) g_object_unref, NULL);
