@@ -168,6 +168,7 @@ typedef struct
         GSList            *new_sessions;
         GSList            *new_users;                 /* (element-type ActUser) (owned) */
         GSList            *new_users_inhibiting_load; /* (element-type ActUser) (unowned) */
+        GSList            *dopplegangers;
         GSList            *fetch_user_requests;
 
         GSList            *exclude_usernames;
@@ -960,6 +961,15 @@ on_new_user_loaded (ActUser        *user,
                 add_user (manager, user);
         } else {
                 _act_user_load_from_user (old_user, user);
+
+                /* The same user had two pending loads (one by uid and one by username), and
+                 * so there are now two objects representing the same user. We can't free
+                 * either one because they both may be in use by callers, and they're both
+                 * ostensbly owned by the user manager. Keep the first one to win
+                 * as the "main" one and treat the leftover one as a doppleganger that we just
+                 * track to clean up at dispose time.
+                 */
+                priv->dopplegangers = g_slist_prepend (priv->dopplegangers, g_object_ref (user));
         }
 
         g_object_unref (user);
@@ -2495,6 +2505,10 @@ act_user_manager_finalize (GObject *object)
         g_slist_foreach (priv->fetch_user_requests,
                          (GFunc) free_fetch_user_request, NULL);
         g_slist_free (priv->fetch_user_requests);
+
+        g_slist_foreach (priv->dopplegangers,
+                         (GFunc) g_object_unref, NULL);
+        g_slist_free (priv->dopplegangers);
 
         g_slist_free (priv->new_users_inhibiting_load);
 
