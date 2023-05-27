@@ -1319,7 +1319,7 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
 
         sys_log (context, "create user '%s'", cd->user_name);
 
-        argv[0] = "/usr/sbin/useradd";
+        argv[0] = "@shadow@/bin/useradd";
         argv[1] = "-m";
         argv[2] = "-c";
         argv[3] = cd->real_name;
@@ -1552,7 +1552,7 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
         }
         free (resolved_homedir);
 
-        argv[0] = "/usr/sbin/userdel";
+        argv[0] = "@shadow@/bin/userdel";
         if (ud->remove_files) {
                 argv[1] = "-f";
                 argv[2] = "-r";
