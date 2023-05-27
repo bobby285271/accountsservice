@@ -1163,6 +1163,11 @@ daemon_create_user (AccountsAccounts      *accounts,
                     const gchar           *real_name,
                     gint                   account_type)
 {
+        if (getenv("NIXOS_USERS_PURE")) {
+                throw_error (context, ERROR_NOT_SUPPORTED, "Modifying users not supported without users.mutableUsers");
+                return;
+        }
+
         Daemon *daemon = (Daemon*)accounts;
         CreateUserData *data;
 
@@ -1365,6 +1370,11 @@ daemon_delete_user (AccountsAccounts      *accounts,
                     gint64                 uid,
                     gboolean               remove_files)
 {
+        if (getenv("NIXOS_USERS_PURE")) {
+                throw_error (context, ERROR_NOT_SUPPORTED, "Modifying users not supported without users.mutableUsers");
+                return;
+        }
+
         Daemon *daemon = (Daemon*)accounts;
         DeleteUserData *data;
 
