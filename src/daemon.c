@@ -193,9 +193,9 @@ get_current_system_dm_type (void)
                 basename = g_file_get_basename (file);
                 g_object_unref (file);
 
-                if (g_strcmp0 (basename, "lightdm.service") == 0)
+                if (g_file_test (PATH_LIGHTDM_CONF, G_FILE_TEST_EXISTS))
                         return DISPLAY_MANAGER_TYPE_LIGHTDM;
-                else if (g_strcmp0 (basename, "gdm.service") == 0)
+                else if (g_file_test (PATH_GDM_CUSTOM, G_FILE_TEST_EXISTS))
                         return DISPLAY_MANAGER_TYPE_GDM;
         }
 
